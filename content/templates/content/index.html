@@ -1,0 +1,152 @@
+{% extends 'content/base.html' %}
+{% load static %}
+
+
+
+{% block content %}
+    <!-- home -->
+	<section class="section section--bg section--first" data-bg="{% static 'img/bg.jpg' %}">
+		<div class="container">
+			<div class="row">
+				<!-- title -->
+				<div class="col-12">
+					<div class="section__title-wrap">
+						<h2 class="section__title section__title--title"><b>Best games</b> of this month</h2>
+
+						<div class="section__nav-wrap">
+							<button class="section__nav section__nav--bg section__nav--prev" type="button" data-nav="#carousel0">
+								<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'><polyline points='328 112 184 256 328 400' style='fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:48px'/></svg>
+							</button>
+
+							<button class="section__nav section__nav--bg section__nav--next" type="button" data-nav="#carousel0">
+								<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'><polyline points='184 112 328 256 184 400' style='fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:48px'/></svg>
+							</button>
+						</div>
+					</div>
+				</div>
+				<!-- end title -->
+			</div>
+		</div>
+
+		<!-- carousel -->
+		<div class="owl-carousel section__carousel section__carousel--big" id="carousel0">
+			
+            
+            {% for game in featuredGames  %}
+                         <!-- big card -->
+			<div class="card card--big">
+				<a href="{% url 'core:game-detail' game.slug %}" class="card__cover">
+					<img src="{{game.img_thumbnail.url}}" style="width:240px; height:340px; object-fit:cover;" alt="">
+				</a>
+
+				<div class="card__wrap">
+					<div class="card__title">
+						<h3><a href="{% url 'core:game-detail' game.slug %}">{{game.title}}</a></h3>
+					</div>
+
+					<ul class="card__list">
+						{% comment %} <li><span>Release date:</span> 30.11.2018</li> {% endcomment %}
+						<li><span>Genres:</span> {{game.genre.name}}
+
+					
+
+					<div class="card__actions">
+						<a href="{% url 'core:game-detail' game.slug %}" class="card__buy" type="button">Play Now</a>
+
+						{% comment %} <button class="card__favorite" type="button">
+							<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'><path d='M352.92,80C288,80,256,144,256,144s-32-64-96.92-64C106.32,80,64.54,124.14,64,176.81c-1.1,109.33,86.73,187.08,183,252.42a16,16,0,0,0,18,0c96.26-65.34,184.09-143.09,183-252.42C447.46,124.14,405.68,80,352.92,80Z' style='fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px'/></svg>
+						</button> {% endcomment %}
+					</div>
+				</div>
+			</div>
+			<!-- end big card -->
+            {% endfor %}
+                
+   
+
+			
+		</div>
+		<!-- end carousel -->
+	</section>
+	<!-- end home -->
+
+    <!-- section -->
+	<section class="section">
+		<div class="container">
+			<div class="row">
+				<!-- title -->
+				<div class="col-12">
+					<div class="section__title-wrap section__title-wrap--single">
+						<h2 class="section__title">Latest releases</h2>
+
+						<div class="section__nav-wrap">
+							<a href="catalog.html" class="section__view">View All</a>
+						</div>
+					</div>
+				</div>
+				<!-- end title -->
+			</div>
+
+			<!-- catalog -->
+			<div class="row catalog-page">
+                
+                {% for game in allGames %}
+                    	<!-- card -->
+				<div class="col-12 col-sm-6 col-md-4 col-lg-3">
+					<div class="card card--catalog">
+						<a href="{% url 'core:game-detail' game.slug %}" class="card__cover">
+							<img src="{{game.img_thumbnail.url}} " style="width:240px; height:340px; object-fit:cover;" alt="{{game.title}}">
+							<span class="card__new">New</span>
+						</a>
+
+						
+
+						<div class="card__title">
+							<h3><a href="{% url 'core:game-detail' game.slug %}">{{game.title}}</a></h3>
+							<span>{{game.genre.name}}</span>
+						</div>
+					</div>
+				</div>
+				<!-- end card -->
+                {% endfor %}
+                    
+			
+
+
+
+				
+				<!-- end card -->
+{% comment %} 
+				<!-- paginator -->
+				<div class="col-12">
+					<div class="paginator">
+						<div class="paginator__counter">
+							15 from 943
+						</div>
+
+						<ul class="paginator__wrap">
+							<li class="paginator__item paginator__item--prev">
+								<a href="#">
+									<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'><polyline points='244 400 100 256 244 112' style='fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:48px'/><line x1='120' y1='256' x2='412' y2='256' style='fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:48px'/></svg>
+								</a>
+							</li>
+							<li class="paginator__item paginator__item--active"><a href="#">1</a></li>
+							<li class="paginator__item"><a href="#">2</a></li>
+							<li class="paginator__item"><a href="#">3</a></li>
+							<li class="paginator__item paginator__item--next">
+								<a href="#">
+									<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'><polyline points='268 112 412 256 268 400' style='fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:48px'/><line x1='392' y1='256' x2='100' y2='256' style='fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:48px'/></svg>
+								</a>
+							</li>
+						</ul>
+					</div>
+				</div>
+				<!-- end paginator --> {% endcomment %}
+			</div>
+			<!-- end catalog -->	
+		</div>
+	</section>
+	<!-- end section -->
+
+{% endblock content %}
+    

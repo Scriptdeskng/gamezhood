@@ -1,0 +1,99 @@
+{% extends 'content/base.html' %}
+{% load static %}
+
+
+
+{% block content %}
+
+<!-- page title -->
+<section class="section section--first section--last section--head" data-bg="img/bg.jpg">
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <div class="section__wrap">
+                    <!-- section title -->
+                    <h2 class="section__title">Search results for {{query}}</h2>
+                    <!-- end section title -->
+
+                    <!-- breadcrumb -->
+                    <ul class="breadcrumb">
+                        <li class="breadcrumb__item"><a href="index.html">Home</a></li>
+                        <li class="breadcrumb__item breadcrumb__item--active">{{category.name}}</li>
+                    </ul>
+                    <!-- end breadcrumb -->
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- end page title -->
+
+
+
+<!-- section -->
+<section class="section section--catalog">
+    <div class="container">
+       
+        <!-- catalog -->
+        <div class="row category">
+           
+            {% if allGames|length > 0 %}
+
+            {% for game in allGames %}
+            <!-- card -->
+    <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+        <div class="card card--catalog">
+            <a href="{% url 'core:game-detail' game.slug %}" class="card__cover">
+                <img src="{{game.img_thumbnail.url}} " style="width:240px; height:340px; object-fit:cover;" alt="{{game.title}}">
+                <span class="card__new">New</span>
+            </a>
+
+            
+
+            <div class="card__title">
+                <h3><a href="{% url 'core:game-detail' game.slug %}">{{game.title}}</a></h3>
+                <span>{{game.genre.name}}</span>
+            </div>
+        </div>
+    </div>
+    <!-- end card -->
+    {% endfor %}
+    {% else %}
+
+    <h3> No Results Found </h3>
+    {% endif %}
+
+
+            {% comment %} <!-- paginator -->
+            <div class="col-12">
+                <div class="paginator">
+                    <div class="paginator__counter">
+                        15 from 144
+                    </div>
+
+                    <ul class="paginator__wrap">
+                        <li class="paginator__item paginator__item--prev">
+                            <a href="#">
+                                <svg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'><polyline points='244 400 100 256 244 112' style='fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:48px'/><line x1='120' y1='256' x2='412' y2='256' style='fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:48px'/></svg>
+                            </a>
+                        </li>
+                        <li class="paginator__item paginator__item--active"><a href="#">1</a></li>
+                        <li class="paginator__item"><a href="#">2</a></li>
+                        <li class="paginator__item"><a href="#">3</a></li>
+                        <li class="paginator__item paginator__item--next">
+                            <a href="#">
+                                <svg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'><polyline points='268 112 412 256 268 400' style='fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:48px'/><line x1='392' y1='256' x2='100' y2='256' style='fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:48px'/></svg>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <!-- end paginator --> {% endcomment %}
+        </div>
+        <!-- end catalog -->	
+    </div>
+</section>
+<!-- end section -->
+
+
+{% endblock content %}
