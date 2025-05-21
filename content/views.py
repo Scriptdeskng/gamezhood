@@ -114,7 +114,7 @@ def getRequestInfo(request):
 
 
 def echoView(request):
-    return HttpResponse("YES, GAMESPLASH IS LIVE !!")
+    return HttpResponse("YES, Gameshood IS LIVE !!")
 
 
 # @allowed_users
