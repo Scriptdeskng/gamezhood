@@ -1,4 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect, HttpResponse
+from django.core.paginator import Paginator
 
 from .models import *
 from ums.models import (
@@ -593,3 +594,52 @@ def angel_media_campaign_url(request):
     except Exception:
 
         return redirect("core:home")
+
+
+def all_games(request):
+    template = "content/all_games.html"
+
+    # Get all games query
+    games = Game.objects.filter(verified=True)
+
+    # Get all genres and categories for filters
+    genres = GameGenre.objects.all()
+    categories = GameCategory.objects.all()
+
+    # Get filter parameters
+    sort = request.GET.get("sort", "latest")
+    genre_id = request.GET.get("genre", "")
+    category_id = request.GET.get("category", "")
+
+    # Apply filters
+    if genre_id:
+        games = games.filter(genre_id=genre_id)
+
+    if category_id:
+        games = games.filter(category_id=category_id)
+
+    # Apply sorting
+    if sort == "oldest":
+        games = games.order_by("created_at")
+    elif sort == "name_asc":
+        games = games.order_by("title")
+    elif sort == "name_desc":
+        games = games.order_by("-title")
+    else:  # latest
+        games = games.order_by("-created_at")
+
+    # Pagination
+    paginator = Paginator(games, 12)  # Show 12 games per page
+    page = request.GET.get("page")
+    games = paginator.get_page(page)
+
+    context = {
+        "games": games,
+        "genres": genres,
+        "categories": categories,
+        "sort": sort,
+        "selected_genre": int(genre_id) if genre_id else None,
+        "selected_category": int(category_id) if category_id else None,
+    }
+
+    return render(request, template, context)

@@ -12,6 +12,7 @@ urlpatterns = [
     path("play-game/<slug>/", game_play, name="game-play"),
     path("category/<slug>/", game_category, name="game-category"),
     path("search/", search_view, name="search"),
+    path("all-games/", all_games, name="all-games"),
     path("run_helper/", run_helper_scripts, name="run-helper"),
     # campaigns
     # path("campaign/neth/", neth_campaign_url, name="campaign-neth"),

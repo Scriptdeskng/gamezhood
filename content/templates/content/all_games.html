@@ -1,0 +1,123 @@
+{% extends 'content/base.html' %}
+{% load static %}
+
+{% block content %}
+<!-- catalog section -->
+<section class="section section--first section--bg" data-bg="{% static 'img/bg.jpg' %}">
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <div class="section__title-wrap">
+                    <h2 class="section__title">All Games</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- filter section -->
+<section class="section">
+    <div class="container">
+        <div class="row">
+            <div class="col-12 col-lg-3">
+                <div class="filter-wrap">
+                    <h4 class="filter__title">Filters</h4>
+                    
+                    <form action="" method="get" class="filter__form">
+                        <div class="filter__group">
+                            <label class="filter__label">Sort By:</label>
+                            <select name="sort" class="filter__select">
+                                <option value="latest" {% if sort == 'latest' %}selected{% endif %}>Latest</option>
+                                <option value="oldest" {% if sort == 'oldest' %}selected{% endif %}>Oldest</option>
+                                <option value="name_asc" {% if sort == 'name_asc' %}selected{% endif %}>Name (A-Z)</option>
+                                <option value="name_desc" {% if sort == 'name_desc' %}selected{% endif %}>Name (Z-A)</option>
+                            </select>
+                        </div>
+
+                        <div class="filter__group">
+                            <label class="filter__label">Genre:</label>
+                            <select name="genre" class="filter__select">
+                                <option value="">All Genres</option>
+                                {% for genre in genres %}
+                                <option value="{{ genre.id }}" {% if selected_genre == genre.id %}selected{% endif %}>
+                                    {{ genre.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="filter__group">
+                            <label class="filter__label">Category:</label>
+                            <select name="category" class="filter__select">
+                                <option value="">All Categories</option>
+                                {% for category in categories %}
+                                <option value="{{ category.id }}" {% if selected_category == category.id %}selected{% endif %}>
+                                    {{ category.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <button type="submit" class="filter__btn">Apply Filters</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- games grid -->
+            <div class="col-12 col-lg-9">
+                <div class="row catalog-page">
+                    {% for game in games %}
+                    <div class="col-12 col-sm-6 col-md-4">
+                        <div class="card card--catalog">
+                            <a href="{% url 'core:game-detail' game.slug %}" class="card__cover">
+                                <img src="{{ game.img_thumbnail.url }}" style="width:240px; height:340px; object-fit:cover;" alt="{{ game.title }}">
+                            </a>
+
+                            <div class="card__title">
+                                <h3><a href="{% url 'core:game-detail' game.slug %}">{{ game.title }}</a></h3>
+                                <span>{{ game.genre.name }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12">
+                        <p class="text-center">No games found matching your criteria.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- pagination -->
+                {% if games.has_other_pages %}
+                <div class="col-12">
+                    <div class="paginator">
+                        <ul class="paginator__wrap">
+                            {% if games.has_previous %}
+                            <li class="paginator__item paginator__item--prev">
+                                <a href="?page={{ games.previous_page_number }}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}{% if request.GET.genre %}&genre={{ request.GET.genre }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}">
+                                    <svg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'><polyline points='244 400 100 256 244 112' style='fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:48px'/></svg>
+                                </a>
+                            </li>
+                            {% endif %}
+
+                            {% for num in games.paginator.page_range %}
+                            <li class="paginator__item {% if games.number == num %}paginator__item--active{% endif %}">
+                                <a href="?page={{ num }}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}{% if request.GET.genre %}&genre={{ request.GET.genre }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}">{{ num }}</a>
+                            </li>
+                            {% endfor %}
+
+                            {% if games.has_next %}
+                            <li class="paginator__item paginator__item--next">
+                                <a href="?page={{ games.next_page_number }}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}{% if request.GET.genre %}&genre={{ request.GET.genre }}{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}">
+                                    <svg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'><polyline points='268 112 412 256 268 400' style='fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:48px'/></svg>
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock content %} 
