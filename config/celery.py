@@ -1,0 +1,14 @@
+import os
+
+from celery import Celery
+
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.prod")
+
+
+#  celery -A backend worker --loglevel=info -P gevent --concurrency 1 -E
+app = Celery("config")
+
+app.config_from_object("django.conf:settings", namespace="CELERY")
+
+app.autodiscover_tasks()
