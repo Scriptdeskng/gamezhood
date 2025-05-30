@@ -600,7 +600,7 @@ body::-webkit-scrollbar-thumb {
   transform: rotate(-45deg);
   top: 10px;
 }
-@media (min-width: 360px) {
+@media (min-width: 500px) {
   .header__logo {
     margin-left: 40px;
   }
@@ -1674,7 +1674,7 @@ body::-webkit-scrollbar-thumb {
   left: auto;
   margin-top: 20px;
 }
-@media (min-width: 360px) {
+@media (min-width: 500px) {
   .card--big {
     padding: 20px;
   }
@@ -2434,7 +2434,7 @@ body::-webkit-scrollbar-thumb {
   padding: 0;
   border: none;
 }
-@media (min-width: 360px) {
+@media (min-width: 500px) {
   .list {
     padding: 20px;
   }
@@ -2653,7 +2653,7 @@ body::-webkit-scrollbar-thumb {
 .post--big .post__img img {
   border-radius: 0;
 }
-@media (min-width: 360px) {
+@media (min-width: 500px) {
   .post__content {
     padding: 20px;
   }
