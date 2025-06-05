@@ -104,11 +104,6 @@ def data_sync(request):
     print(the_data)
 
     try:
-        new_sync = WebhookBackup.objects.create(req_body=f"{request.body}")
-    except:
-        pass
-
-    try:
         new_sync_data = DataSync.objects.create(
             type=the_data["type"],
             telco=the_data["telco"],
@@ -129,8 +124,7 @@ def data_sync(request):
             new_sync_data.auto_renewal = the_data["details"]["auto_renewal"]
         if the_data["details"]["expiry"]:
             new_sync_data.sub_expiry = the_data["details"]["expiry"]
-        if new_sync:
-            new_sync_data.webhook_backup = new_sync
+    
 
         new_sync_data.save()
     except Exception as ex:
@@ -139,11 +133,6 @@ def data_sync(request):
 
     try:
         if the_data["telco"] == "MTN":
-            try:
-                new_sync.telco = "MTN"
-                new_sync.save()
-            except:
-                pass
             not_type = the_data[
                 "type"
             ]  # UNSUBSCRIPTION_NOTIFICATION, SYNC_NOTIFICATION
@@ -188,45 +177,7 @@ def data_sync(request):
                 theUser.sub_status = "active"
                 theUser.save()
 
-                # try mobplus
-                try:
-                    find_mobplus_promo_msisdn_qs = CampaignTracker.objects.filter(
-                        msisdn=msisdn, provider=choices.CampaignProvider.MOBPLUS.value
-                    )
-                    if find_mobplus_promo_msisdn_qs.exists():
-                        find_promo_msisdn = find_mobplus_promo_msisdn_qs.last()
-                        postbackUrl = f"http://m.mobplus.net/c/p/5085e36b2e1e4d909b1a732a9841c965?txid={find_promo_msisdn.click_id}&pubid={find_promo_msisdn.pubid}&amt={sub_amount}&currency={find_promo_msisdn.currency}"
-                        send_postback = requests.get(postbackUrl)
-                        find_promo_msisdn.converted = True
-                        find_promo_msisdn.amt = sub_amount
-                        find_promo_msisdn.save()
-                        new_sync_data.campaign_tracker = find_promo_msisdn
-                        new_sync_data.save()
-                        print(send_postback)
-                except Exception as ex:
-                    print("mobplus exception", ex)
-                    pass
-
-                try:
-                    # check campaign tracker is msisdn is there
-                    find_neth_promo_msisdn_qs = CampaignTracker.objects.filter(
-                        msisdn=msisdn, provider=choices.CampaignProvider.NETH.value
-                    )
-                    if find_neth_promo_msisdn_qs.exists():
-                        find_promo_msisdn = find_neth_promo_msisdn_qs.last()
-
-                        postbackUrl = f"https://postback.level23.nl/?currency=USD&handler=11349&hash=63857b26c564dd6b79e5a2fb1bb209e8&tracker={find_promo_msisdn.click_id}"
-
-                        send_postback = requests.get(postbackUrl)
-                        find_promo_msisdn.converted = True
-                        find_promo_msisdn.amt = sub_amount
-                        find_promo_msisdn.save()
-                        new_sync_data.campaign_tracker = find_promo_msisdn
-                        new_sync_data.save()
-                        print(send_postback)
-                except Exception as ex:
-                    print("neth exception is ", ex)
-                    pass
+             
 
                 return HttpResponse(200)
 
@@ -526,10 +477,6 @@ def data_sync_v2(request):
     the_data = json.loads(request.body)
     print(the_data)
 
-    try:
-        new_sync = WebhookBackup.objects.create(req_body=f"{request.body}")
-    except:
-        pass
 
     try:
         new_sync_data = DataSync.objects.create(
@@ -554,8 +501,7 @@ def data_sync_v2(request):
             new_sync_data.sub_expiry = the_data["details"]["expiry"]
         if the_data["details"].get("bearerId"):
             new_sync_data.bearer_id = the_data["details"]["bearerId"]
-        if new_sync:
-            new_sync_data.webhook_backup = new_sync
+
 
         new_sync_data.save()
     except Exception as ex:
@@ -563,227 +509,115 @@ def data_sync_v2(request):
         pass
 
     try:
-        if the_data["telco"] == "MTN":
+          
+        not_type = the_data[
+            "type"
+        ]  # UNSUBSCRIPTION_NOTIFICATION, SYNC_NOTIFICATION
+        msisdn = the_data["details"]["phone"]
+        # "%Y-%m-%dT%H:%M:%S.%fZ",
+
+        prod_type = the_data["product"]["type"]
+        # sub_type = the_data["product"]["subscription_type"]
+        print("prod_type", prod_type)
+
+        if msisdn.startswith("0") and len(msisdn) == 11:
+            msisdn = msisdn.replace("0", "234", 1)
+
+        # fetch user
+        theUser, user_created = UserProfile.objects.get_or_create(phone=msisdn)
+        userSub, sub_created = UserSubscribtion.objects.get_or_create(user=theUser)
+        if not_type == "SYNC_NOTIFICATION":
+
+            """
+
+            {
+                "type": "SYNC_NOTIFICATION",
+                "telco": "MTN",
+                "action": "NONE",
+                "shortcode": null,
+                "product": {
+                    "id": 23410220000027084,
+                    "name": "HML_Games_6934",
+                    "identity": "23410220000027084",
+                    "type": "SUBSCRIPTION",
+                    "subscription_type": "ONETIME_AND_RECURRING",
+                    "status": "LIVE",
+                },
+                "details": {
+                    "phone": "2348032146475",
+                    "amount": 0.0,
+                    "channel": "SecureD",
+                    "date": "2024-09-02 14:43:19",
+                    "expiry": "2024-09-03",
+                    "auto_renewal": true,
+                    "telco_status_code": "0",
+                    "telco_ref": "24090214431844647587",
+                },
+            }
+
+            """
+
+            start_date = the_data["details"]["date"]
+            start_datetime = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
+            end_date = the_data["details"]["expiry"]
+            end_datetime = datetime.strptime(end_date, "%Y-%m-%d")
+
+            userSub.sub_active = True
+            userSub.starts_date = start_datetime
+            userSub.ends_date = end_datetime
+
             try:
-                new_sync.telco = "MTN"
-                new_sync.save()
-            except:
-                pass
-            not_type = the_data[
-                "type"
-            ]  # UNSUBSCRIPTION_NOTIFICATION, SYNC_NOTIFICATION
-            msisdn = the_data["details"]["phone"]
-            # "%Y-%m-%dT%H:%M:%S.%fZ",
-
-            prod_type = the_data["product"]["type"]
-            # sub_type = the_data["product"]["subscription_type"]
-            print("prod_type", prod_type)
-
-            if msisdn.startswith("0") and len(msisdn) == 11:
-                msisdn = msisdn.replace("0", "234", 1)
-
-            # fetch user
-            theUser, user_created = UserProfile.objects.get_or_create(phone=msisdn)
-            userSub, sub_created = UserSubscribtion.objects.get_or_create(user=theUser)
-            if not_type == "SYNC_NOTIFICATION":
-
-                """
-
-                {
-                    "type": "SYNC_NOTIFICATION",
-                    "telco": "MTN",
-                    "action": "NONE",
-                    "shortcode": null,
-                    "product": {
-                        "id": 23410220000027084,
-                        "name": "HML_Games_6934",
-                        "identity": "23410220000027084",
-                        "type": "SUBSCRIPTION",
-                        "subscription_type": "ONETIME_AND_RECURRING",
-                        "status": "LIVE",
-                    },
-                    "details": {
-                        "phone": "2348032146475",
-                        "amount": 0.0,
-                        "channel": "SecureD",
-                        "date": "2024-09-02 14:43:19",
-                        "expiry": "2024-09-03",
-                        "auto_renewal": true,
-                        "telco_status_code": "0",
-                        "telco_ref": "24090214431844647587",
-                    },
-                }
-
-                """
-
-                start_date = the_data["details"]["date"]
-                start_datetime = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
-                end_date = the_data["details"]["expiry"]
-                end_datetime = datetime.strptime(end_date, "%Y-%m-%d")
-
-                userSub.sub_active = True
-                userSub.starts_date = start_datetime
-                userSub.ends_date = end_datetime
-
-                try:
-                    if not sub_created:
-                        userSub.first_sub = True
-                        if the_data["details"]["auto_renewal"] == True:
-                            userSub.auto_renewal = True
-                except:
-                    pass
-                userSub.save()
-
-                theUser.sub_status = "active"
-                theUser.save()
-
-                # try mobplus
-                today = datetime.now()
-                try:
-                    sub_amount = "0.45"
-                    find_mobplus_promo_msisdn_qs = CampaignTracker.objects.filter(
-                        msisdn=msisdn, provider=choices.CampaignProvider.MOBPLUS.value
-                    )
-                    if find_mobplus_promo_msisdn_qs.exists():
-                        find_promo_msisdn = find_mobplus_promo_msisdn_qs.last()
-                        if (
-                            not CampaignDuplicate.objects.filter(
-                                msisdn=find_promo_msisdn
-                            ).exists()
-                            and find_promo_msisdn.converted == False
-                            and find_promo_msisdn.is_convertable == True
-                        ):
-                            postbackUrl = f"http://m.mobplus.net/c/p/5085e36b2e1e4d909b1a732a9841c965?txid={find_promo_msisdn.click_id}&pubid={find_promo_msisdn.pubid}&amt={sub_amount}&currency={find_promo_msisdn.currency}"
-                            send_postback = requests.get(postbackUrl)
-                            find_promo_msisdn.converted = True
-                            try:
-                                find_promo_msisdn.converted_at = today
-                                if not find_promo_msisdn.msisdn:
-                                    find_promo_msisdn.msisdn = msisdn
-                            except Exception as ex:
-                                print(ex)
-                                pass
-                            find_promo_msisdn.amt = sub_amount
-                            find_promo_msisdn.save()
-                            new_sync_data.campaign_tracker = find_promo_msisdn
-                            new_sync_data.save()
-                            try:
-                                theUser.traffic_source = (
-                                    choices.CampaignProvider.MOBPLUS.value
-                                )
-                                theUser.save()
-                                userSub.traffic_source = (
-                                    choices.CampaignProvider.MOBPLUS.value
-                                )
-                                userSub.save()
-                            except Exception as ex:
-                                print(ex)
-                                pass
-                            print(send_postback)
-                except Exception as ex:
-                    print("mobplus exception", ex)
-                    pass
-
-                try:
-                    sub_amount = "0.35"
-                    # check campaign tracker is msisdn is there
-                    find_neth_promo_msisdn_qs = CampaignTracker.objects.filter(
-                        msisdn=msisdn, provider=choices.CampaignProvider.NETH.value
-                    )
-                    if find_neth_promo_msisdn_qs.exists():
-                        find_promo_msisdn = find_neth_promo_msisdn_qs.last()
-                        print(f"found {find_promo_msisdn}")
-
-                        if (
-                            not CampaignDuplicate.objects.filter(
-                                msisdn=find_promo_msisdn
-                            ).exists()
-                            and find_promo_msisdn.converted == False
-                            and find_promo_msisdn.is_convertable == True
-                        ):
-
-                            postbackUrl = f"https://postback.level23.nl/?currency=USD&handler=11349&hash=63857b26c564dd6b79e5a2fb1bb209e8&tracker={find_promo_msisdn.click_id}"
-
-                            send_postback = requests.get(postbackUrl)
-                            print("sent call back")
-                            find_promo_msisdn.converted = True
-                            try:
-                                find_promo_msisdn.converted_at = today
-                                if not find_promo_msisdn.msisdn:
-                                    find_promo_msisdn.msisdn = msisdn
-                            except Exception as ex:
-                                print(ex)
-                                pass
-                            find_promo_msisdn.amt = sub_amount
-                            find_promo_msisdn.save()
-                            new_sync_data.campaign_tracker = find_promo_msisdn
-                            new_sync_data.save()
-                            try:
-                                theUser.traffic_source = (
-                                    choices.CampaignProvider.NETH.value
-                                )
-                                theUser.save()
-                                userSub.traffic_source = (
-                                    choices.CampaignProvider.NETH.value
-                                )
-                                userSub.save()
-                            except Exception as ex:
-                                print(ex)
-                                pass
-                            print(send_postback)
-                except Exception as ex:
-                    print("neth exception is ", ex)
-                    pass
-
-                return JsonResponse({"status": 200, "message": "ok"})
-
-            elif not_type == "UNSUBSCRIPTION_NOTIFICATION":
-                print("this is a unsubscribtion request")
-                userSub.sub_active = False
-                userSub.save()
-
-                theUser.sub_status = "inactive"
-                theUser.save()
-
-                print("done with unsubscribtion")
-                return JsonResponse({"status": 200, "message": "ok"})
-            elif not_type == "RENEWAL_NOTIFICATION":
-                """
-                b'{"type":"RENEWAL_NOTIFICATION","telco":"MTN","action":"NONE","shortcode":null,"product":{"id":70,"name":"Magic Box Daily","identity":"PD-16541987951000","type":"SUBSCRIPTION","subscription_type":"ONETIME_AND_RECURRING","status":"LIVE"},"details":{"phone":"2347047344879","amount":5000,"channel":"system-renewal","date":"2023-01-07 08:58","expiry":"2023-01-08 08:58","auto_renewal":true,"telco_status_code":"0","telco_ref":"upstream_paid_2617724eebdbc3e8"}}'
-                """
-                start_date = the_data["details"]["date"]
-                start_datetime = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
-                end_date = the_data["details"]["expiry"]
-                end_datetime = datetime.strptime(end_date, "%Y-%m-%d")
-
-                userSub.sub_active = True
-
-                userSub.starts_date = start_datetime
-                userSub.ends_date = end_datetime
-
-                try:
-                    userSub.first_sub = False
-                    userSub.renewal_sub = True
+                if not sub_created:
+                    userSub.first_sub = True
                     if the_data["details"]["auto_renewal"] == True:
                         userSub.auto_renewal = True
-                except:
-                    pass
-                userSub.save()
-
-                theUser.sub_status = "active"
-                theUser.save()
-                return JsonResponse({"status": 200, "message": "ok"})
-
-            else:
-                return JsonResponse({"status": 200, "message": "ok"})
-        elif the_data["telco"] == "AIRTEL":
-            try:
-                new_sync.telco = "AIRTEL"
-                new_sync.save()
             except:
                 pass
-            # handle access
+            userSub.save()
+
+            theUser.sub_status = "active"
+            theUser.save()
+
+            
             return JsonResponse({"status": 200, "message": "ok"})
+
+        elif not_type == "UNSUBSCRIPTION_NOTIFICATION":
+            print("this is a unsubscribtion request")
+            userSub.sub_active = False
+            userSub.save()
+
+            theUser.sub_status = "inactive"
+            theUser.save()
+
+            print("done with unsubscribtion")
+            return JsonResponse({"status": 200, "message": "ok"})
+        elif not_type == "RENEWAL_NOTIFICATION":
+            """
+            b'{"type":"RENEWAL_NOTIFICATION","telco":"MTN","action":"NONE","shortcode":null,"product":{"id":70,"name":"Magic Box Daily","identity":"PD-16541987951000","type":"SUBSCRIPTION","subscription_type":"ONETIME_AND_RECURRING","status":"LIVE"},"details":{"phone":"2347047344879","amount":5000,"channel":"system-renewal","date":"2023-01-07 08:58","expiry":"2023-01-08 08:58","auto_renewal":true,"telco_status_code":"0","telco_ref":"upstream_paid_2617724eebdbc3e8"}}'
+            """
+            start_date = the_data["details"]["date"]
+            start_datetime = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
+            end_date = the_data["details"]["expiry"]
+            end_datetime = datetime.strptime(end_date, "%Y-%m-%d")
+
+            userSub.sub_active = True
+
+            userSub.starts_date = start_datetime
+            userSub.ends_date = end_datetime
+
+            try:
+                userSub.first_sub = False
+                userSub.renewal_sub = True
+                if the_data["details"]["auto_renewal"] == True:
+                    userSub.auto_renewal = True
+            except:
+                pass
+            userSub.save()
+
+            theUser.sub_status = "active"
+            theUser.save()
+            return JsonResponse({"status": 200, "message": "ok"})
+
         else:
             return JsonResponse({"status": 200, "message": "ok"})
     except Exception as e:
