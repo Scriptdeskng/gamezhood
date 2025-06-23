@@ -3,10 +3,11 @@ from django.shortcuts import render
 # Create your views here.
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_POST
-from django.shortcuts import render, redirect
+from django.shortcuts import render, HttpResponse, redirect, HttpResponseRedirect
 from django.views.decorators.csrf import csrf_exempt
 from content.mail import send_email
 
+from dateutil.relativedelta import relativedelta
 
 from django.db.models import Sum
 
@@ -17,28 +18,25 @@ from .models import *
 # from .subscriptionManager import mtnSubscribe, mtnUnSubscribe
 import json
 from . import choices
-import requests
+
+
+from django.utils.crypto import get_random_string
 
 from .subscriptionManager import HML
 
 from . import tasks
 
+import logging
+
+
+logger = logging.getLogger(__name__)
+
 
 def subscribe(request):
     try:
-
-        if "Msisdn" in request.headers:
-            msisdn = request.headers["Msisdn"]
-            print(f"redirecting {msisdn} to Secure D")
-
-            # send to secureD for redirection
-        N = 7
-        res = "".join(random.choices(string.ascii_lowercase + string.digits, k=N))
-
-        traffic_source = f"Organic Search"
-
-        redirect_url = f"http://ng-app.com/HML/GameSplash-24-No-23410220000027084-web?trfsrc{traffic_source}&trxId={res}"
-
+        res = get_random_string(length=48)
+        traffic_source = "Organic Search"
+        redirect_url = f"http://ng-app.com/AVANZAR/gamezhood-landing-en-doi-web?origin_banner=1&trxId={res}&trfsrc={traffic_source}"
         return redirect(redirect_url)
     except Exception as ex:
         print(ex)
@@ -239,19 +237,11 @@ def data_sync(request):
 @require_POST
 @csrf_exempt
 def campaign_notification(request):
-    try:
-        the_data = json.loads(request.body)
-        print(the_data)
-
-        try:
-            new_sync = CampaignNotificationBackup.objects.create(
-                req_body=f"{request.body}"
-            )
-        except:
-            pass
-    except Exception as e:
-        print("error", e)
-        pass
+    
+    new_sync = CampaignNotificationBackup.objects.create(
+        req_body=f"{request.body}"
+    )
+      
 
     return HttpResponse(200)
 
@@ -275,10 +265,10 @@ def pullData(request):
 
 
 def generate_report(request):
-    from .tasks import fetch_report, subscribtion_source_report
+   
 
-    fetch_report.delay()
-    subscribtion_source_report.delay()
+    tasks.fetch_report.delay()
+    tasks.subscribtion_source_report.delay()
 
     return HttpResponse(200)
 
@@ -468,161 +458,13 @@ def fetch_stats(request):
     return JsonResponse(data)
 
 
-# DATA SYNC
 @require_POST
 @csrf_exempt
 def data_sync_v2(request):
-    print("Receiving from Forthsoft datasync")
-
     the_data = json.loads(request.body)
-    print(the_data)
+    tasks.process_datasync.delay(the_data)
+    return JsonResponse({"status": 200, "message": "ok"})
 
-
-    try:
-        new_sync_data = DataSync.objects.create(
-            type=the_data["type"],
-            telco=the_data["telco"],
-            product_id=the_data["product"]["id"],
-            product_name=the_data["product"]["name"],
-            product_not_type=the_data["product"]["type"],
-            product_sub_type=the_data["product"]["subscription_type"],
-            phone=the_data["details"]["phone"],
-            telco_ref=the_data["details"]["telco_ref"],
-        )
-        if the_data["details"]["amount"]:
-            new_sync_data.amount = int(the_data["details"]["amount"])
-        if the_data["details"]["channel"]:
-            new_sync_data.channel = the_data["details"]["channel"]
-        if the_data["details"]["date"]:
-            new_sync_data.sub_date = the_data["details"]["date"]
-        if the_data["details"]["auto_renewal"]:
-            new_sync_data.auto_renewal = the_data["details"]["auto_renewal"]
-        if the_data["details"]["expiry"]:
-            new_sync_data.sub_expiry = the_data["details"]["expiry"]
-        if the_data["details"].get("bearerId"):
-            new_sync_data.bearer_id = the_data["details"]["bearerId"]
-
-
-        new_sync_data.save()
-    except Exception as ex:
-        print("saving datasync error", ex)
-        pass
-
-    try:
-          
-        not_type = the_data[
-            "type"
-        ]  # UNSUBSCRIPTION_NOTIFICATION, SYNC_NOTIFICATION
-        msisdn = the_data["details"]["phone"]
-        # "%Y-%m-%dT%H:%M:%S.%fZ",
-
-        prod_type = the_data["product"]["type"]
-        # sub_type = the_data["product"]["subscription_type"]
-        print("prod_type", prod_type)
-
-        if msisdn.startswith("0") and len(msisdn) == 11:
-            msisdn = msisdn.replace("0", "234", 1)
-
-        # fetch user
-        theUser, user_created = UserProfile.objects.get_or_create(phone=msisdn)
-        userSub, sub_created = UserSubscribtion.objects.get_or_create(user=theUser)
-        if not_type == "SYNC_NOTIFICATION":
-
-            """
-
-            {
-                "type": "SYNC_NOTIFICATION",
-                "telco": "MTN",
-                "action": "NONE",
-                "shortcode": null,
-                "product": {
-                    "id": 23410220000027084,
-                    "name": "HML_Games_6934",
-                    "identity": "23410220000027084",
-                    "type": "SUBSCRIPTION",
-                    "subscription_type": "ONETIME_AND_RECURRING",
-                    "status": "LIVE",
-                },
-                "details": {
-                    "phone": "2348032146475",
-                    "amount": 0.0,
-                    "channel": "SecureD",
-                    "date": "2024-09-02 14:43:19",
-                    "expiry": "2024-09-03",
-                    "auto_renewal": true,
-                    "telco_status_code": "0",
-                    "telco_ref": "24090214431844647587",
-                },
-            }
-
-            """
-
-            start_date = the_data["details"]["date"]
-            start_datetime = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
-            end_date = the_data["details"]["expiry"]
-            end_datetime = datetime.strptime(end_date, "%Y-%m-%d")
-
-            userSub.sub_active = True
-            userSub.starts_date = start_datetime
-            userSub.ends_date = end_datetime
-
-            try:
-                if not sub_created:
-                    userSub.first_sub = True
-                    if the_data["details"]["auto_renewal"] == True:
-                        userSub.auto_renewal = True
-            except:
-                pass
-            userSub.save()
-
-            theUser.sub_status = "active"
-            theUser.save()
-
-            
-            return JsonResponse({"status": 200, "message": "ok"})
-
-        elif not_type == "UNSUBSCRIPTION_NOTIFICATION":
-            print("this is a unsubscribtion request")
-            userSub.sub_active = False
-            userSub.save()
-
-            theUser.sub_status = "inactive"
-            theUser.save()
-
-            print("done with unsubscribtion")
-            return JsonResponse({"status": 200, "message": "ok"})
-        elif not_type == "RENEWAL_NOTIFICATION":
-            """
-            b'{"type":"RENEWAL_NOTIFICATION","telco":"MTN","action":"NONE","shortcode":null,"product":{"id":70,"name":"Magic Box Daily","identity":"PD-16541987951000","type":"SUBSCRIPTION","subscription_type":"ONETIME_AND_RECURRING","status":"LIVE"},"details":{"phone":"2347047344879","amount":5000,"channel":"system-renewal","date":"2023-01-07 08:58","expiry":"2023-01-08 08:58","auto_renewal":true,"telco_status_code":"0","telco_ref":"upstream_paid_2617724eebdbc3e8"}}'
-            """
-            start_date = the_data["details"]["date"]
-            start_datetime = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
-            end_date = the_data["details"]["expiry"]
-            end_datetime = datetime.strptime(end_date, "%Y-%m-%d")
-
-            userSub.sub_active = True
-
-            userSub.starts_date = start_datetime
-            userSub.ends_date = end_datetime
-
-            try:
-                userSub.first_sub = False
-                userSub.renewal_sub = True
-                if the_data["details"]["auto_renewal"] == True:
-                    userSub.auto_renewal = True
-            except:
-                pass
-            userSub.save()
-
-            theUser.sub_status = "active"
-            theUser.save()
-            return JsonResponse({"status": 200, "message": "ok"})
-
-        else:
-            return JsonResponse({"status": 200, "message": "ok"})
-    except Exception as e:
-        print(e)
-        return JsonResponse({"status": 200, "message": "ok"})
 
 
 def fetch_campaign_behaviour(request):
@@ -695,3 +537,71 @@ def export_all_msisdn_query(request):
     tasks.export_all_msisdns.delay()
 
     return JsonResponse({"status": 200, "message": "Processing report!"})
+
+
+
+
+def mobplus_campaign_url(request):
+    try:
+        partner = request.GET.get("partner", None)
+        click_id = request.GET.get("clickid", None)
+        telco = request.GET.get("telco", None)
+        pubid = request.GET.get("pubid", None)
+
+        unique_sub_ref = get_random_string(length=48)
+        msisdn = request.headers.get("Msisdn")
+        if not msisdn:
+            traffic_source = "OrganicSource"
+            redirect_url = f"http://ng-app.com/AVANZAR/gamezhood-landing-en-doi-web?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
+            return HttpResponseRedirect(redirect_url)
+
+        if msisdn.startswith("0") and len(msisdn) == 11:
+            msisdn = msisdn.replace("0", "234", 1)
+
+        new_promo_hit = CampaignTracker.objects.filter(
+            click_id=click_id, provider=choices.CampaignProvider.MOBPLUS.value
+        ).last()
+        if not new_promo_hit:
+            new_promo_hit = CampaignTracker.objects.create(
+                click_id=click_id,
+                msisdn=msisdn,
+                provider=choices.CampaignProvider.MOBPLUS.value,
+                currency="USD",
+            )
+
+        if any([partner, telco, pubid]):
+            new_promo_hit.partner = partner or new_promo_hit.partner
+            new_promo_hit.telco = telco or new_promo_hit.telco
+            new_promo_hit.pubid = pubid or new_promo_hit.pubid
+            # new_promo_hit.save() 
+        
+
+        user_prof = UserProfile.objects.filter(phone=msisdn).first()
+        if user_prof:
+            # check if user has active subscribtion
+            now = timezone.now()
+            one_month_ago = now - relativedelta(hours=24)
+            # user deactivated active subscribtion
+            user_sub = UserSubscribtion.objects.filter(user=user_prof).first()
+            if user_sub.ends_date and user_sub.ends_date <= one_month_ago:
+                tasks.handle_remarketing.apply_async(
+                args=[msisdn, choices.CampaignProvider.MOBPLUS.value],
+                countdown=120,
+                )
+                # redirect to secured D
+                new_promo_hit.is_convertable = False
+                ### redirect as organic source
+                traffic_source = "OrganicSource"
+                redirect_url = f"http://ng-app.com/AVANZAR/gamezhood-landing-en-doi-web?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
+                return HttpResponseRedirect(redirect_url)
+            else:
+                return redirect("core:home")
+
+        new_promo_hit.save()
+        tasks.handle_occurence.delay(new_promo_hit.id)
+        traffic_source = "MobPlus"
+        redirect_url = f"http://ng-app.com/AVANZAR/gamezhood-landing-en-doi-web?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
+        return HttpResponseRedirect(redirect_url)
+    except Exception as ex:
+        logger.error("exception occurred", exc_info=True)
+        return redirect("core:home")

@@ -200,158 +200,125 @@ def handle_occurence(promo_id):
         print(traceback.format_exc())
 
 
+def handle_datasync_payload(payload):
+    new_sync_data = DataSync.objects.create(
+        type=payload["type"],
+        telco=payload["telco"],
+        product_id=payload["product"]["id"],
+        product_name=payload["product"]["name"],
+        product_not_type=payload["product"]["type"],
+        product_sub_type=payload["product"]["subscription_type"],
+        phone=payload["details"]["phone"],
+        telco_ref=payload["details"]["telco_ref"],
+    )
+    new_sync_data.amount = int(payload["details"].get("amount", 0))
+    new_sync_data.channel = payload["details"].get("channel")
+    new_sync_data.sub_date = payload["details"].get("date")
+    new_sync_data.auto_renewal = payload["details"].get("auto_renewal")
+    new_sync_data.sub_expiry = payload["details"].get("expiry")
+    new_sync_data.bearer_id = payload["details"].get("bearerId")
+    new_sync_data.save()
+
+    return new_sync_data
+
+
+def handle_postback_delay(provider: str, tracker_id, new_sync_data_id, user_sub_id):
+    print(f"processing {provider} and {tracker_id}")
+    postback_processes = {
+        choices.CampaignProvider.MOBPLUS.value: process_mobplus_postback,
+        choices.CampaignProvider.NETH.value: process_neth_postback,
+        choices.CampaignProvider.MOBIDEA.value: process_mobedia_postback,
+        choices.CampaignProvider.ANGELMEDIA.value: process_angel_media_postback,
+    }
+    return postback_processes[provider].delay(tracker_id, new_sync_data_id, user_sub_id)
+
+
+
 @shared_task
 def process_datasync(payload):
     try:
-        logger.info(f"handling payload {payload}")
+        new_sync_data = handle_datasync_payload(payload)
+        today = timezone.now()
+        not_type = payload["type"]  # UNSUBSCRIPTION_NOTIFICATION, SYNC_NOTIFICATION
+        msisdn = payload["details"]["phone"]
 
-        new_sync = WebhookBackup.objects.create(
-            req_body=f"{payload}", operator="Forthsoft"
+        if msisdn.startswith("0") and len(msisdn) == 11:
+            msisdn = msisdn.replace("0", "234", 1)
+
+        # fetch user
+        theUser, _ = UserProfile.objects.get_or_create(phone=msisdn)
+        theUser.telco = "MTN"
+
+        userSub, sub_created = UserSubscribtion.objects.get_or_create(
+            user=theUser,
         )
 
-        new_sync_data = DataSync.objects.create(
-            type=payload["type"],
-            telco=payload["telco"],
-            product_id=payload["product"]["id"],
-            product_name=payload["product"]["name"],
-            product_not_type=payload["product"]["type"],
-            product_sub_type=payload["product"]["subscription_type"],
-            phone=payload["details"]["phone"],
-            telco_ref=payload["details"]["telco_ref"],
-            operator="Forthsoft",
-        )
+        if not_type == "SYNC_NOTIFICATION":
+            start_date = payload["details"]["date"]
+            start_datetime = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
+            end_date = payload["details"]["expiry"]
+            end_datetime = datetime.strptime(end_date, "%Y-%m-%d")
 
-        if payload["details"]["amount"]:
-            new_sync_data.amount = int(payload["details"]["amount"])
-        if payload["details"]["channel"]:
-            new_sync_data.channel = payload["details"]["channel"]
-        if payload["details"]["date"]:
-            new_sync_data.sub_date = payload["details"]["date"]
-        if payload["details"]["auto_renewal"]:
-            new_sync_data.auto_renewal = payload["details"]["auto_renewal"]
-        if payload["details"]["expiry"]:
-            new_sync_data.sub_expiry = payload["details"]["expiry"]
-        if payload["details"].get("bearerId"):
-            new_sync_data.bearer_id = payload["details"]["bearerId"]
-        if new_sync:
-            new_sync_data.webhook_backup = new_sync
+            userSub.sub_active = end_datetime.astimezone() > today
 
-        new_sync_data.save()
+            userSub.starts_date = start_datetime
+            userSub.ends_date = end_datetime
 
-        if payload["telco"] == "MTN":
-
-            new_sync.telco = "MTN"
-            new_sync.save()
-
-            not_type = payload["type"]  # UNSUBSCRIPTION_NOTIFICATION, SYNC_NOTIFICATION
-            msisdn = payload["details"]["phone"]
-
-            # "%Y-%m-%dT%H:%M:%S.%fZ",
-
-            prod_type = payload["product"]["type"]
-            # sub_type = the_data["product"]["subscription_type"]
-
-            if msisdn.startswith("0") and len(msisdn) == 11:
-                msisdn = msisdn.replace("0", "234", 1)
-
-            # fetch user
-            theUser, user_created = UserProfile.objects.get_or_create(phone=msisdn)
-            theUser.telco = "MTN"
-            theUser.save()
-            userSub, sub_created = UserSubscribtion.objects.get_or_create(user=theUser)
-
-            if not_type == "SYNC_NOTIFICATION":
-
-                start_date = payload["details"]["date"]
-                start_datetime = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
-                end_date = payload["details"]["expiry"]
-                end_datetime = datetime.strptime(end_date, "%Y-%m-%d")
-
-                # sub_amount = int(the_data["details"]["amount"]) / 100
-
-                userSub.sub_active = True
-                userSub.starts_date = start_datetime
-                userSub.ends_date = end_datetime
-
-                if not sub_created:
-                    userSub.first_sub = True
-                    if (
-                        payload["details"].get("auto_renewal")
-                        and payload["details"]["auto_renewal"] == True
-                    ):
-                        userSub.auto_renewal = True
-
-                userSub.save()
-
-                theUser.sub_status = "active"
-                theUser.save()
-
-                # find campaign tracker
-                tracker_qs = CampaignTracker.objects.filter(msisdn=msisdn)
-
-                if tracker_qs.exists():
-                    tracker = tracker_qs.last()
-                    if tracker.provider == choices.CampaignProvider.MOBPLUS.value:
-                        # process mobplus
-                        process_mobplus_postback.delay(
-                            tracker.id, new_sync_data.id, userSub.id
-                        )
-                    elif tracker.provider == choices.CampaignProvider.NETH.value:
-                        process_neth_postback.delay(
-                            tracker.id, new_sync_data.id, userSub.id
-                        )
-                    elif tracker.provider == choices.CampaignProvider.MOBIDEA.value:
-                        process_mobedia_postback.delay(
-                            tracker.id, new_sync_data.id, userSub.id
-                        )
-                    elif tracker.provider == choices.CampaignProvider.ANGELMEDIA.value:
-                        process_angel_media_postback.delay(
-                            tracker.id, new_sync_data.id, userSub.id
-                        )
-            elif not_type == "UNSUBSCRIPTION_NOTIFICATION":
-
-                userSub.sub_active = False
-                userSub.save()
-
-                theUser.sub_status = "inactive"
-                theUser.save()
-            elif not_type == "RENEWAL_NOTIFICATION":
-                """
-                b'{"type":"RENEWAL_NOTIFICATION","telco":"MTN","action":"NONE","shortcode":null,"product":{"id":70,"name":"Magic Box Daily","identity":"PD-16541987951000","type":"SUBSCRIPTION","subscription_type":"ONETIME_AND_RECURRING","status":"LIVE"},"details":{"phone":"2347047344879","amount":5000,"channel":"system-renewal","date":"2023-01-07 08:58","expiry":"2023-01-08 08:58","auto_renewal":true,"telco_status_code":"0","telco_ref":"upstream_paid_2617724eebdbc3e8"}}'
-                """
-                start_date = payload["details"]["date"]
-                start_datetime = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
-                end_date = payload["details"]["expiry"]
-                end_datetime = datetime.strptime(end_date, "%Y-%m-%d")
-
-                userSub.sub_active = True
-
-                userSub.starts_date = start_datetime
-                userSub.ends_date = end_datetime
-
-                userSub.first_sub = False
-                userSub.renewal_sub = True
-                if (
-                    payload["details"].get("auto_renewal")
-                    and payload["details"]["auto_renewal"] == True
-                ):
+            if not sub_created:
+                userSub.first_sub = True
+                if payload["details"].get("auto_renewal") and payload["details"]["auto_renewal"]:
                     userSub.auto_renewal = True
+                
+            theUser.sub_status = "active"
+            # theUser.save()
 
-                userSub.save()
+            # find campaign tracker
+            tracker_qs = CampaignTracker.objects.filter(msisdn=msisdn)
 
-                theUser.sub_status = "active"
-                theUser.save()
-        elif payload["telco"] == "AIRTEL":
+            if tracker_qs.exists():
+                tracker = tracker_qs.last()
+                try:
+                    handle_postback_delay(
+                        tracker.provider,
+                        tracker.id,
+                        new_sync_data.id,
+                        userSub.id,
+                    )
+                except Exception as ex:
+                    logger.error(ex)
+                    print("error handling postback delays")
+        elif not_type == "UNSUBSCRIPTION_NOTIFICATION":
+            userSub.sub_active = False
+            # userSub.save()
 
-            new_sync.telco = "AIRTEL"
-            new_sync.save()
+            theUser.sub_status = "inactive"
 
-        logger.info(f"done processing {new_sync_data.phone} ")
+        elif not_type == "RENEWAL_NOTIFICATION":
+            """
+            b'{"type":"RENEWAL_NOTIFICATION","telco":"MTN","action":"NONE","shortcode":null,"product":{"id":70,"name":"Magic Box Daily","identity":"PD-16541987951000","type":"SUBSCRIPTION","subscription_type":"ONETIME_AND_RECURRING","status":"LIVE"},"details":{"phone":"2347047344879","amount":5000,"channel":"system-renewal","date":"2023-01-07 08:58","expiry":"2023-01-08 08:58","auto_renewal":true,"telco_status_code":"0","telco_ref":"upstream_paid_2617724eebdbc3e8"}}'
+            """
+            start_date = payload["details"]["date"]
+            start_datetime = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
+            end_date = payload["details"]["expiry"]
+            end_datetime = datetime.strptime(end_date, "%Y-%m-%d")
+
+            userSub.sub_active = end_datetime.astimezone() > today
+
+            userSub.starts_date = start_datetime
+            userSub.ends_date = end_datetime
+
+            userSub.first_sub = False
+
+            userSub.auto_renewal = bool(payload["details"].get("auto_renewal"))
+
+            theUser.sub_status = "active" if end_datetime.astimezone() > today else "inactive"
+
+        userSub.save()
+        theUser.save()
+        print(f"done processing datasync for  {new_sync_data.phone}")
     except Exception as ex:
         logger.error(ex)
 
-
-# process neth postback
 
 
 @shared_task
@@ -400,7 +367,7 @@ def process_mobplus_postback(tracker_id, sync_id, sub_id):
         data_sync = DataSync.objects.get(id=sync_id)
         user_sub = UserSubscribtion.objects.get(id=sub_id)
         theUser = user_sub.user
-        sub_amount = "0.45"
+        sub_amount = "0.35"
         today = timezone.now()
 
         # check campaign tracker is msisdn is there
@@ -411,7 +378,8 @@ def process_mobplus_postback(tracker_id, sync_id, sub_id):
             and find_promo_msisdn.converted == False
             and find_promo_msisdn.is_convertable == True
         ):
-            postbackUrl = f"http://m.mobplus.net/c/p/5085e36b2e1e4d909b1a732a9841c965?txid={find_promo_msisdn.click_id}&pubid={find_promo_msisdn.pubid}&amt={sub_amount}&currency={find_promo_msisdn.currency}"
+            postbackUrl = f"http://m.mobplus.net/c/p/fb83a001c07e407789097636bbf52f7c?txid={find_promo_msisdn.click_id}&pubid={find_promo_msisdn.pubid}&amt={sub_amount}&currency={find_promo_msisdn.currency}"
+
             requests.get(postbackUrl)
 
             find_promo_msisdn.converted = True

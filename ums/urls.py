@@ -35,4 +35,7 @@ urlpatterns = [
     ),
     path("cleanup_data_sync/", cleanup_data_sync, name="cleanup_data_sync"),
     path("export_all_msisdn_query/", export_all_msisdn_query, name="export_all_msisdn_query"),
+
+    #web promos 
+    path("campaign/mobplus/", mobplus_campaign_url, name="campaign-mobplus"),
 ]
