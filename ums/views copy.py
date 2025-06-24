@@ -39,7 +39,7 @@ def subscribe(request):
         return redirect(redirect_url)
     except Exception as ex:
         print(ex)
-        return redirect("core:home")
+        return redirect("content:home")
 
     # check subscription status
     ###########
@@ -63,10 +63,10 @@ def cancelSubscribtion(request):
 
         if unSub != False:
             print("Un-Subscribtion Successfull")
-            return redirect("core:home")
+            return redirect("content:home")
         else:
             print("Subscribtion UnSuccessfull")
-            return redirect("core:home")
+            return redirect("content:home")
     else:
         return redirect("users:onboarding")
 

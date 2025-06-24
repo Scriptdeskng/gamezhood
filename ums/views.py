@@ -40,7 +40,7 @@ def subscribe(request):
         return redirect(redirect_url)
     except Exception as ex:
         print(ex)
-        return redirect("core:home")
+        return redirect("content:home")
 
     # check subscription status
     ###########
@@ -64,10 +64,10 @@ def cancelSubscribtion(request):
 
         if unSub != False:
             print("Un-Subscribtion Successfull")
-            return redirect("core:home")
+            return redirect("content:home")
         else:
             print("Subscribtion UnSuccessfull")
-            return redirect("core:home")
+            return redirect("content:home")
     else:
         return redirect("users:onboarding")
 
@@ -595,7 +595,7 @@ def mobplus_campaign_url(request):
                 redirect_url = f"http://ng-app.com/AVANZAR/gamezhood-landing-en-doi-web?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
                 return HttpResponseRedirect(redirect_url)
             else:
-                return redirect("core:home")
+                return redirect("content:home")
 
         new_promo_hit.save()
         tasks.handle_occurence.delay(new_promo_hit.id)
@@ -604,4 +604,4 @@ def mobplus_campaign_url(request):
         return HttpResponseRedirect(redirect_url)
     except Exception as ex:
         logger.error("exception occurred", exc_info=True)
-        return redirect("core:home")
+        return redirect("content:home")
