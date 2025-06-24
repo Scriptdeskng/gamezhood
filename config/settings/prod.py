@@ -1,10 +1,10 @@
 from .base import *
 
 
-DEBUG = True
+DEBUG = False
 
 # ALLOWED_HOSTS = []
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = ["gamezhood.avanzar.online"]
 
 
 DATABASES = {
