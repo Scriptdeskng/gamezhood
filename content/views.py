@@ -98,8 +98,6 @@ def game_detail(request, slug=None):
 
 def getRequestInfo(request):
     theheaders = json.dumps(dict(request.headers))
-    print(theheaders)
-    print(type(theheaders))
     returnData = {"MSISDN": theheaders}
     return JsonResponse(returnData)
 
