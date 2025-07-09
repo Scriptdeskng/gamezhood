@@ -35,13 +35,13 @@
             {% for game in featuredGames  %}
                          <!-- big card -->
 			<div class="card card--big">
-				<a href="{% url 'core:game-detail' game.slug %}" class="card__cover">
+				<a class="game_play" data-slug="{{game.slug}}" href="#" class="card__cover">
 					<img src="{{game.img_thumbnail.url}}" style="width:240px; height:340px; object-fit:cover;" alt="">
 				</a>
 
 				<div class="card__wrap">
 					<div class="card__title">
-						<h3><a href="{% url 'core:game-detail' game.slug %}">{{game.title}}</a></h3>
+						<h3><a class="game_play" data-slug="{{game.slug}}" href="#" >{{game.title}}</a></h3>
 					</div>
 
 					<ul class="card__list">
@@ -51,7 +51,7 @@
 					
 
 					<div class="card__actions">
-						<a href="{% url 'core:game-detail' game.slug %}" class="card__buy" type="button">Play Now</a>
+						<a class="game_play" data-slug="{{game.slug}}" href="#" class="card__buy">Play Now</a>
 
 						{% comment %} <button class="card__favorite" type="button">
 							<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'><path d='M352.92,80C288,80,256,144,256,144s-32-64-96.92-64C106.32,80,64.54,124.14,64,176.81c-1.1,109.33,86.73,187.08,183,252.42a16,16,0,0,0,18,0c96.26-65.34,184.09-143.09,183-252.42C447.46,124.14,405.68,80,352.92,80Z' style='fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:32px'/></svg>
@@ -94,7 +94,7 @@
                     	<!-- card -->
 				<div class="col-md-6 col-lg-3">
 					<div class="card card--catalog">
-						<a href="{% url 'core:game-detail' game.slug %}" class="card__cover">
+						<a class="game_play" data-slug="{{game.slug}}" href="#" class="card__cover">
 							<img src="{{game.img_thumbnail.url}} " style="width:100%; height:340px; object-fit:cover;" alt="{{game.title}}" loading="lazy">
 							<span class="card__new">New</span>
 						</a>
@@ -102,7 +102,7 @@
 						
 
 						<div class="card__title">
-							<h3><a href="{% url 'core:game-detail' game.slug %}">{{game.title}}</a></h3>
+							<h3><a class="game_play" data-slug="{{game.slug}}" href="#" >{{game.title}}</a></h3>
 							<span>{{game.genre.name}}</span>
 						</div>
 					</div>
@@ -120,4 +120,51 @@
 	<!-- end section -->
 
 {% endblock content %}
+
+
+
+{% block extra_scripts %}
+
+<script type="text/javascript">
+    $(document).ready(function() {
+
+    // check subscribtion status
+    function checkSubStatus() {
+        var url = "/u/check_sub_status/"
+        return fetch(url)
+            .then((response) => response.json())
+            .then((data) => {
+                return data
+            })
+    }
+
+    // Handle Click Event for All Banner Buttons 
+    
+
+    $('.game_play').on('click', async function(event) {
+            event.preventDefault(); // Prevent default link behavior
+
+            let gameSlug = $(this).data('slug')
+            console.log(`game slug is ${gameSlug}`)
+
+            const data = await checkSubStatus();
+            if (data.status === true) {
+                if (gameSlug !== undefined) {
+                    window.location.href = `/play-game/${gameSlug}/`; // Scrolls to section
+                }
+                else{
+                    window.location.href = "#"; 
+                }
+                
+            } else {
+                window.location.href = "/u/subscribe"; // Redirects to subscription page
+            }
+        })
+
+
+});
+
+</script>
+
+{% endblock extra_scripts %}
     

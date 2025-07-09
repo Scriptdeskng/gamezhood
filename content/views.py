@@ -10,6 +10,8 @@ from django.http import  JsonResponse
 from ums.decorators import allowed_users
 from .context_processor import fetch_msisdn
 
+from datetime import datetime, date
+
 
 
 
@@ -109,6 +111,32 @@ def echoView(request):
 @allowed_users
 def game_play(request, slug=None):
     the_game = get_object_or_404(Game, slug=slug)
+
+
+    try:
+        today = datetime.now()
+        the_game.play_times += 1
+        the_game.save()
+
+        user_profile = fetch_msisdn(request)
+        msisdn = user_profile["msisdn"]
+        if msisdn != "" or msisdn != None:
+            fetch_profile = UserProfile.objects.get(phone=msisdn)
+            # create watched content
+            played_game_qs = PlayedGame.objects.filter(
+                user=fetch_profile, game=the_game, created_at__day=today.day
+            )
+            if played_game_qs.exists():
+                played_game = played_game_qs.first()
+                played_game.count += 1
+                played_game.save()
+            else:
+                PlayedGame.objects.create(user=fetch_profile, game=the_game)
+        else:
+            pass
+    except Exception as ex:
+        print(ex)
+        pass
 
     template = "content/game_play.html"
 

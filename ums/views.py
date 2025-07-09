@@ -2,7 +2,7 @@ from django.shortcuts import render
 
 # Create your views here.
 from django.http import HttpResponse, JsonResponse
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_GET
 from django.shortcuts import render, HttpResponse, redirect, HttpResponseRedirect
 from django.views.decorators.csrf import csrf_exempt
 from content.mail import send_email
@@ -605,3 +605,54 @@ def mobplus_campaign_url(request):
     except Exception as ex:
         logger.error("exception occurred", exc_info=True)
         return redirect("content:home")
+    
+@require_GET
+@csrf_exempt
+def check_sub_status(request):
+    data = dict(request.headers)
+
+
+    json_resp = {}
+
+    msisdn_data = data.get("Msisdn")
+    if msisdn_data:
+        msisdn = data["Msisdn"]
+        if msisdn.startswith("0") and len(msisdn) == 11:
+            msisdn = msisdn.replace("0", "234", 1)
+
+        theUser, _ = UserProfile.objects.get_or_create(phone=msisdn)
+        fetchSubscribtion = UserSubscribtion.objects.filter(user=theUser)
+        if fetchSubscribtion.exists():
+            theSub = fetchSubscribtion.first()
+            if theSub.sub_active == True:
+                json_resp.update(
+                    {
+                        "status": True,
+                        "message": "Msisdn has active subscribtion",
+                    }
+                )
+            else:
+                json_resp.update(
+                    {
+                        "status": False,
+                        "message": "No Active subscribtion",
+                    }
+                )
+        else:
+            json_resp.update(
+                {
+                    "status": False,
+                    "message": "No Active subscribtion",
+                }
+            )
+    else:
+        json_resp.update(
+            {
+                "status": False,
+                "message": "No Active subscribtion",
+            }
+        )
+
+    return JsonResponse(
+        data=json_resp,
+    )
