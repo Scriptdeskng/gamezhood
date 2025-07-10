@@ -484,6 +484,9 @@ def fetch_stats(request):
 @csrf_exempt
 def data_sync_v2(request):
     try:
+        WebhookBackup.objects.create(
+            req_body=f"{request.body}"
+        )
         print(f"Receiving datasync payload for: {request.body}")
         the_data = json.loads(request.body)
         tasks.process_datasync(the_data)
