@@ -460,25 +460,37 @@ def fetch_stats(request):
     return JsonResponse(data)
 
 
+# @require_POST
+# @csrf_exempt
+# def data_sync_v2(request):
+#     try:
+#         print(f"Receiving datasync payload for: {request.body}")
+#         the_data = json.loads(request.body)
+#         datasync_task = tasks.process_datasync.delay(the_data)
+#         if not datasync_task.id:
+#             return JsonResponse({"status": 400, "error": "Unable to process request"})
+#         result = AsyncResult(datasync_task.id, app=celery_app)
+#         return JsonResponse({"status": 200, "message": "ok", "process_result":{
+#             "task_id": datasync_task.id,
+#             "task_status": result.status,
+#             "result": result.result if result.ready() else None,
+#         }})
+#     except Exception as ex:
+#         print(ex)
+#         return JsonResponse({"status": 400, "error": "Unable to process request", "details": str(ex)})
+
+
 @require_POST
 @csrf_exempt
 def data_sync_v2(request):
     try:
         print(f"Receiving datasync payload for: {request.body}")
         the_data = json.loads(request.body)
-        datasync_task = tasks.process_datasync.delay(the_data)
-        if not datasync_task.id:
-            return JsonResponse({"status": 400, "error": "Unable to process request"})
-        result = AsyncResult(datasync_task.id, app=celery_app)
-        return JsonResponse({"status": 200, "message": "ok", "process_result":{
-            "task_id": datasync_task.id,
-            "task_status": result.status,
-            "result": result.result if result.ready() else None,
-        }})
+        tasks.process_datasync(the_data)
+        return JsonResponse({"status": 200, "message": "ok"})
     except Exception as ex:
         print(ex)
         return JsonResponse({"status": 400, "error": "Unable to process request", "details": str(ex)})
-
 
 
 def check_task_result(request):
