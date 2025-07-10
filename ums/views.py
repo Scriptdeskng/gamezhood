@@ -10,6 +10,8 @@ from content.mail import send_email
 from dateutil.relativedelta import relativedelta
 
 from django.db.models import Sum
+from celery.result import AsyncResult
+from config.celery import app as celery_app
 
 from datetime import datetime
 
@@ -461,9 +463,20 @@ def fetch_stats(request):
 @require_POST
 @csrf_exempt
 def data_sync_v2(request):
-    the_data = json.loads(request.body)
-    tasks.process_datasync.delay(the_data)
-    return JsonResponse({"status": 200, "message": "ok"})
+    try:
+        the_data = json.loads(request.body)
+        datasync_task = tasks.process_datasync.delay(the_data)
+        if not datasync_task.id:
+            return JsonResponse({"status": 400, "error": "Unable to process request"})
+        result = AsyncResult(datasync_task.id, app=celery_app)
+        return JsonResponse({"status": 200, "message": "ok", "process_result":{
+            "task_id": datasync_task.id,
+            "task_status": result.status,
+            "result": result.result if result.ready() else None,
+        }})
+    except Exception as ex:
+        print(ex)
+        return JsonResponse({"status": 400, "error": "Unable to process request", "details": str(ex)})
 
 
 
