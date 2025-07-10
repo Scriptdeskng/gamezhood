@@ -247,7 +247,6 @@ def process_datasync(payload):
 
         # fetch user
         theUser, _ = UserProfile.objects.get_or_create(phone=msisdn)
-        theUser.telco = "MTN"
 
         userSub, sub_created = UserSubscribtion.objects.get_or_create(
             user=theUser,
