@@ -481,6 +481,28 @@ def data_sync_v2(request):
 
 
 
+def check_task_result(request):
+    task_id = request.GET.get("task_id", None)
+    if not task_id:
+        return JsonResponse({"status": 400, "error": "task_id is required"})
+
+    result = AsyncResult(task_id, app=celery_app)
+
+    if result.ready():
+        return JsonResponse({
+            "status": 200,
+            "message": "Task completed",
+            "result": result.result
+        })
+    else:
+        return JsonResponse({
+            "status": 202,
+            "message": "Task is still processing",
+            "task_status": result.status,
+            "result": result.result if result.ready() else None,
+        })
+    
+
 def fetch_campaign_behaviour(request):
 
     start = request.GET.get("start", None)

@@ -40,4 +40,5 @@ urlpatterns = [
     path("campaign/mobplus/", mobplus_campaign_url, name="campaign-mobplus"),
 
     path("check_sub_status/", check_sub_status, name="check_sub_status"),
+    path("check_task_result/", check_task_result, name="check_task_result"),
 ]
