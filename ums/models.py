@@ -149,6 +149,7 @@ class DataSync(models.Model):
     webhook_backup = models.ForeignKey(
         WebhookBackup, on_delete=models.DO_NOTHING, blank=True, null=True
     )
+    bearer_id = models.CharField(max_length=100, blank=True, null=True)
     campaign_tracker = models.ForeignKey(
         CampaignTracker, on_delete=models.DO_NOTHING, blank=True, null=True
     )

@@ -490,7 +490,7 @@ def data_sync_v2(request):
         return JsonResponse({"status": 200, "message": "ok"})
     except Exception as ex:
         print(ex)
-        return JsonResponse({"status": 400, "error": "Unable to process request", "details": str(ex)})
+        return JsonResponse({"status": 400, "error": "Unable to process request", "details": str(ex)}, status=400)
 
 
 def check_task_result(request):
