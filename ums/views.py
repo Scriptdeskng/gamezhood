@@ -464,6 +464,7 @@ def fetch_stats(request):
 @csrf_exempt
 def data_sync_v2(request):
     try:
+        print(f"Receiving datasync payload for: {request.body}")
         the_data = json.loads(request.body)
         datasync_task = tasks.process_datasync.delay(the_data)
         if not datasync_task.id:
