@@ -485,10 +485,10 @@ def fetch_stats(request):
 def data_sync_v2(request):
     try:
         WebhookBackup.objects.create(
-            req_body=f"{request.body}"
+            req_body=f"{request.body.decode('utf-8')}"
         )
         print(f"Receiving datasync payload for: {request.body}")
-        the_data = json.loads(request.body)
+        the_data = json.loads(request.body.decode('utf-8'))
         datasync_task = tasks.process_datasync(the_data)
         if datasync_task["status"] == "Failed":
             return JsonResponse({"status": 400, "error": f"Unable to process request-{datasync_task["error"]}"}, status=400)
