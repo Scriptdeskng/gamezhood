@@ -202,7 +202,7 @@ def handle_occurence(promo_id):
 
 def handle_datasync_payload(payload):
     new_sync_data = DataSync.objects.create(
-        type=payload["type"],
+        
         telco=payload["telco"],
         product_id=payload["product"]["id"],
         product_name=payload["product"]["name"],
@@ -211,6 +211,7 @@ def handle_datasync_payload(payload):
         phone=payload["details"]["phone"],
         telco_ref=payload["details"]["telco_ref"],
     )
+    new_sync_data.telco = payload.get("telco"),
     new_sync_data.amount = int(payload["details"].get("amount", 0))
     new_sync_data.channel = payload["details"].get("channel")
     new_sync_data.sub_date = payload["details"].get("date")
