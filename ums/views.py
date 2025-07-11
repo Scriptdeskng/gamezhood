@@ -489,8 +489,10 @@ def data_sync_v2(request):
         )
         print(f"Receiving datasync payload for: {request.body}")
         the_data = json.loads(request.body)
-        tasks.process_datasync(the_data)
-        return JsonResponse({"status": 200, "message": "ok"})
+        datasync_task = tasks.process_datasync(the_data)
+        if datasync_task["status"] == "Failed":
+            return JsonResponse({"status": 400, "error": "Unable to process request"})
+        return JsonResponse({"status": 200, "message": "ok, data sync processed successfully"})
     except Exception as ex:
         print(ex)
         return JsonResponse({"status": 400, "error": "Unable to process request", "details": str(ex)}, status=400)

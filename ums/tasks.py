@@ -316,8 +316,10 @@ def process_datasync(payload):
         userSub.save()
         theUser.save()
         print(f"done processing datasync for  {new_sync_data.phone}")
+        return {"status": "Success", "data": new_sync_data.id}
     except Exception as ex:
         logger.error(ex)
+        return {"status": "Failed", "error": str(ex)}
 
 
 
