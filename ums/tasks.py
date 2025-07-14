@@ -202,8 +202,7 @@ def handle_occurence(promo_id):
 
 def handle_datasync_payload(payload):
     new_sync_data = DataSync.objects.create(
-        
-        telco=payload["telco"],
+        type=payload["type"],
         product_id=payload["product"]["id"],
         product_name=payload["product"]["name"],
         product_not_type=payload["product"]["type"],
