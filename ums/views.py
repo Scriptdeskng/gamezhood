@@ -724,7 +724,7 @@ def kmmobi_campaign_url(request):
         msisdn = request.headers.get("Msisdn")
         if not msisdn:
             traffic_source = "OrganicSource"
-            redirect_url = f"http://ng-app.com/AVANZAR/homerecipe-landing-en-doi-web?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
+            redirect_url = f"http://ng-app.com/AVANZAR/gamezhood-landing-en-doi-web?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
             return HttpResponseRedirect(redirect_url)
 
         if msisdn.startswith("0") and len(msisdn) == 11:
@@ -764,7 +764,7 @@ def kmmobi_campaign_url(request):
                 new_promo_hit.is_convertable = False
                 ### redirect as organic source
                 traffic_source = "OrganicSource"
-                redirect_url = f"http://ng-app.com/AVANZAR/homerecipe-landing-en-doi-web?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
+                redirect_url = f"http://ng-app.com/AVANZAR/gamezhood-landing-en-doi-web?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
                 return HttpResponseRedirect(redirect_url)
             else:
                 return redirect("content:home")
@@ -772,7 +772,7 @@ def kmmobi_campaign_url(request):
         new_promo_hit.save()
         tasks.handle_occurence.delay(new_promo_hit.id)
         traffic_source = "KM Mobi"
-        redirect_url = f"http://ng-app.com/AVANZAR/homerecipe-landing-en-doi-web?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
+        redirect_url = f"http://ng-app.com/AVANZAR/gamezhood-landing-en-doi-web?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
         return HttpResponseRedirect(redirect_url)
     except Exception as ex:
         logger.error("exception occurred", exc_info=True)
