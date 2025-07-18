@@ -229,6 +229,7 @@ def handle_postback_delay(provider: str, tracker_id, new_sync_data_id, user_sub_
         choices.CampaignProvider.NETH.value: process_neth_postback,
         choices.CampaignProvider.MOBIDEA.value: process_mobedia_postback,
         choices.CampaignProvider.ANGELMEDIA.value: process_angel_media_postback,
+        choices.CampaignProvider.KMMOBI.value: process_kmmobi_postback,
     }
     return postback_processes[provider].delay(tracker_id, new_sync_data_id, user_sub_id)
 
@@ -322,6 +323,44 @@ def process_datasync(payload):
         return {"status": "Failed", "error": str(ex)}
 
 
+
+@shared_task
+def process_kmmobi_postback(tracker_id, sync_id, sub_id):
+    try:
+        data_sync = DataSync.objects.get(id=sync_id)
+        user_sub = UserSubscribtion.objects.get(id=sub_id)
+        theUser = user_sub.user
+        sub_amount = "0.40"
+        today = timezone.now()
+
+        # check campaign tracker is msisdn is there
+        find_promo_msisdn = CampaignTracker.objects.get(id=tracker_id)
+
+        if (
+            not CampaignDuplicate.objects.filter(msisdn=find_promo_msisdn).exists()
+            and find_promo_msisdn.converted == False
+            and find_promo_msisdn.is_convertable == True
+        ):
+            postbackUrl = f"http://kmmobi.fuse-ad.com/pb?tid={find_promo_msisdn.click_id}&affid={find_promo_msisdn.pubid}"
+
+            requests.get(postbackUrl)
+
+            find_promo_msisdn.converted = True
+
+            find_promo_msisdn.converted_at = today
+
+            find_promo_msisdn.amt = sub_amount
+            find_promo_msisdn.save()
+
+            data_sync.campaign_tracker = find_promo_msisdn
+            data_sync.save()
+
+            theUser.traffic_source = choices.CampaignProvider.KMMOBI.value
+            theUser.save()
+            user_sub.traffic_source = choices.CampaignProvider.KMMOBI.value
+            user_sub.save()
+    except Exception as ex:
+        logger.error(ex)
 
 @shared_task
 def process_neth_postback(tracker_id, sync_id, sub_id):
