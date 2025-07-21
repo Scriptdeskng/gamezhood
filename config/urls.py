@@ -12,7 +12,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("accounts/", include("allauth.urls")),
     path("u/", include("ums.urls", namespace="users")),
-    path("", include("content.urls", namespace="core")),
+    path("", include("content.urls", namespace="content")),
 ]
 
 
