@@ -38,7 +38,7 @@
                         <!-- card -->
                         <div class="col-12 col-sm-6 col-md-4 col-lg-3">
                             <div class="card card--catalog">
-                                <a href="{% url 'core:game-detail' game.slug %}" class="card__cover">
+                                <a href="{% url 'content:game-detail' game.slug %}" class="card__cover">
                                     <img src="{{ game.img_thumbnail.url }} "
                                          style="width:240px;
                                                 height:340px;
@@ -48,7 +48,7 @@
                                 </a>
                                 <div class="card__title">
                                     <h3>
-                                        <a href="{% url 'core:game-detail' game.slug %}">{{ game.title }}</a>
+                                        <a href="{% url 'content:game-detail' game.slug %}">{{ game.title }}</a>
                                     </h3>
                                     <span>{{ game.genre.name }}</span>
                                 </div>

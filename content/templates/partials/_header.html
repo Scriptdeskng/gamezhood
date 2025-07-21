@@ -18,13 +18,13 @@
 
                         <ul class="header__nav">
                             <li class="header__nav-item">
-                                <a class="header__nav-link" href="{% url 'core:all-games' %}">All Games</a>
+                                <a class="header__nav-link" href="{% url 'content:all-games' %}">All Games</a>
                             </li>
                             <li class="header__nav-item">
-                                <a class="header__nav-link" href="{% url 'core:game-category' slug='html' %}">HMTL Games</a>
+                                <a class="header__nav-link" href="{% url 'content:game-category' slug='html' %}">HMTL Games</a>
                             </li>
                             <li class="header__nav-item">
-                                <a class="header__nav-link" href="{% url 'core:game-category' slug='mobile' %}">Mobile Games</a>
+                                <a class="header__nav-link" href="{% url 'content:game-category' slug='mobile' %}">Mobile Games</a>
                             </li>
                         </ul>
 
@@ -47,7 +47,7 @@
             <div class="row">
                 <div class="col-12">
                     <div class="header__content">
-                        <form action="{% url 'core:search' %}" class="header__form">
+                        <form action="{% url 'content:search' %}" class="header__form">
                             <input type="search" name="q" class="header__input" placeholder="I'm searching for...">
                             
                             <button class="header__btn" type="button">

@@ -2,7 +2,7 @@ from django.urls import path
 from .views import *
 
 
-app_name = "core"
+app_name = "content"
 
 urlpatterns = [
     path("", homepage, name="home"),
@@ -14,5 +14,4 @@ urlpatterns = [
     path("search/", search_view, name="search"),
     path("all-games/", all_games, name="all-games"),
     # path("run_helper/", run_helper_scripts, name="run-helper"),
- 
 ]
