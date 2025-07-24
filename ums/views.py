@@ -878,7 +878,7 @@ def mobikok_campaign_url(request):
 
 
         new_promo_hit = CampaignTracker.objects.filter(
-            click_id=click_id, provider=choices.CampaignProvider.M.value
+            click_id=click_id, provider=choices.CampaignProvider.MOBIKOK.value
         ).last()
         if not new_promo_hit:
             new_promo_hit = CampaignTracker.objects.create(
