@@ -863,3 +863,49 @@ def kmmobi_campaign_url(request):
     except Exception as ex:
         logger.error("exception occurred", exc_info=True)
         return redirect("content:home")
+    
+
+
+
+def mobikok_campaign_url(request):
+    try:
+        partner = request.GET.get("partner", None)
+        click_id = request.GET.get("clickid", None)
+        telco = request.GET.get("telco", None)
+        pubid = request.GET.get("pubid", None)
+
+        unique_sub_ref = get_random_string(length=48)
+
+
+        new_promo_hit = CampaignTracker.objects.filter(
+            click_id=click_id, provider=choices.CampaignProvider.M.value
+        ).last()
+        if not new_promo_hit:
+            new_promo_hit = CampaignTracker.objects.create(
+                click_id=click_id,
+                provider=choices.CampaignProvider.MOBIKOK.value,
+                currency="USD",
+            )
+
+        if any([partner, telco, pubid]):
+            new_promo_hit.partner = partner or new_promo_hit.partner
+            new_promo_hit.telco = telco or new_promo_hit.telco
+            new_promo_hit.pubid = pubid or new_promo_hit.pubid
+
+
+        msisdn = request.headers.get("Msisdn")
+        if msisdn:
+            if msisdn.startswith("0") and len(msisdn) == 11:
+                msisdn = msisdn.replace("0", "234", 1)
+            
+            new_promo_hit.msisdn = msisdn
+
+        new_promo_hit.save()
+        traffic_source = "Mobikok"
+        redirect_url = f"http://ng-app.com/AVANZAR/gamezhood-landing-en-doi-web?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
+        return HttpResponseRedirect(redirect_url)
+    except Exception as ex:
+        logger.error("exception occurred", exc_info=True)
+        return redirect("content:home")
+    
+

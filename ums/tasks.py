@@ -230,6 +230,7 @@ def handle_postback_delay(provider: str, tracker_id, new_sync_data_id, user_sub_
         choices.CampaignProvider.MOBIDEA.value: process_mobedia_postback,
         choices.CampaignProvider.ANGELMEDIA.value: process_angel_media_postback,
         choices.CampaignProvider.KMMOBI.value: process_kmmobi_postback,
+        choices.CampaignProvider.MOBIKOK.value: process_mobikok_postback,
     }
     return postback_processes[provider].delay(tracker_id, new_sync_data_id, user_sub_id)
 
@@ -516,6 +517,42 @@ def process_angel_media_postback(tracker_id, sync_id, sub_id):
             theUser.traffic_source = choices.CampaignProvider.ANGELMEDIA.value
             theUser.save()
             user_sub.traffic_source = choices.CampaignProvider.ANGELMEDIA.value
+            user_sub.save()
+    except Exception as ex:
+        logger.error(ex)
+
+# process mobplus postback
+@shared_task
+def process_mobikok_postback(tracker_id, sync_id, sub_id):
+    try:
+        data_sync = DataSync.objects.get(id=sync_id)
+        user_sub = UserSubscribtion.objects.get(id=sub_id)
+        theUser = user_sub.user
+        sub_amount = "0.35"
+        today = timezone.now()
+
+        # check campaign tracker is msisdn is there
+        find_promo_msisdn = CampaignTracker.objects.get(id=tracker_id)
+
+        if  find_promo_msisdn.converted == False and find_promo_msisdn.is_convertable == True:
+
+            postbackUrl = f"http://trace.sm4link.com/pb?tid={find_promo_msisdn.click_id}&pubId={find_promo_msisdn.pubid}"
+
+            requests.get(postbackUrl)
+
+            find_promo_msisdn.converted = True
+
+            find_promo_msisdn.converted_at = today
+
+            find_promo_msisdn.amt = sub_amount
+            find_promo_msisdn.save()
+
+            data_sync.campaign_tracker = find_promo_msisdn
+            data_sync.save()
+
+            theUser.traffic_source = choices.CampaignProvider.MOBIKOK.value
+            theUser.save()
+            user_sub.traffic_source = choices.CampaignProvider.MOBIKOK.value
             user_sub.save()
     except Exception as ex:
         logger.error(ex)
