@@ -306,20 +306,20 @@ def fetch_stats(request):
     campaign_counts_month = {}
 
     for label, provider in providers:
-        base_qs = models.CampaignTracker.objects.filter(provider=provider, converted=True)
+        base_qs = CampaignTracker.objects.filter(provider=provider, converted=True)
         today_count = base_qs.filter(date_filter).count()
         month_count = base_qs.filter(month_filter).count()
         campaign_counts_today[label] = today_count
         campaign_counts_month[label] = month_count
 
-    campaign_not = models.CampaignNotificationBackup.objects.filter(backup_filter).count()
+    campaign_not = CampaignNotificationBackup.objects.filter(backup_filter).count()
 
-    remarketing_today = models.CampaignDuplicate.objects.filter(backup_filter, remarketed=True).count()
-    remarketing_month = models.CampaignDuplicate.objects.filter(remarketing_filter, remarketed=True).count()
+    remarketing_today = CampaignDuplicate.objects.filter(backup_filter, remarketed=True).count()
+    remarketing_month = CampaignDuplicate.objects.filter(remarketing_filter, remarketed=True).count()
 
-    user_prof = models.UserProfile.objects.filter(user_filter).count()
+    user_prof = UserProfile.objects.filter(user_filter).count()
 
-    datasync_qs = models.DataSync.objects.filter(datasync_filter)
+    datasync_qs = DataSync.objects.filter(datasync_filter)
     subscriptions = datasync_qs.filter(type="SYNC_NOTIFICATION")
     renewals = datasync_qs.filter(type="RENEWAL_NOTIFICATION")
     unsubs = datasync_qs.filter(type="UNSUBSCRIPTION_NOTIFICATION")
