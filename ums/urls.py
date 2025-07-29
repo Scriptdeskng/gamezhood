@@ -41,6 +41,12 @@ urlpatterns = [
     path("campaign/kmmobi/", kmmobi_campaign_url, name="campaign-kmmobi"),
     path("campaign/mobikok/", mobikok_campaign_url, name="campaign-mobikok"),
 
+    path(
+        "get_cr_data/",
+        get_cr_data,
+        name="get_cr_data",
+    ),
+
     path("check_sub_status/", check_sub_status, name="check_sub_status"),
     path("check_task_result/", check_task_result, name="check_task_result"),
 ]

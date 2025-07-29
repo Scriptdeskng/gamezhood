@@ -9,7 +9,7 @@ from content.mail import send_email
 
 from dateutil.relativedelta import relativedelta
 
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from celery.result import AsyncResult
 from config.celery import app as celery_app
 
@@ -221,11 +221,7 @@ def data_sync(request):
             else:
                 return HttpResponse(200)
         elif the_data["telco"] == "AIRTEL":
-            try:
-                new_sync.telco = "AIRTEL"
-                new_sync.save()
-            except:
-                pass
+            pass
             # handle access
             return HttpResponse(200)
         else:
@@ -275,157 +271,68 @@ def generate_report(request):
     return HttpResponse(200)
 
 
-#### Vendor Onboarding
 def fetch_stats(request):
     today = datetime.now()
-
-    # start_date_str = "2024-06-24 00:00:01"
     the_day = request.GET.get("day", None)
+
     if the_day:
         date_format = "%Y-%m-%d %H:%M:%S"
         date_obj = datetime.strptime(f"{the_day} 00:00:00", date_format)
-
-        campaing_tracker_neth = CampaignTracker.objects.filter(
-            created_at__date=date_obj.date(),
-            provider=choices.CampaignProvider.NETH.value,
-            converted=True,
-        ).count()
-
-        campaing_tracker_neth_month = CampaignTracker.objects.filter(
-            created_at__month=date_obj.month,
-            provider=choices.CampaignProvider.NETH.value,
-            converted=True,
-        ).count()
-
-        campaing_tracker_mobedia = CampaignTracker.objects.filter(
-            created_at__date=date_obj.date(),
-            provider=choices.CampaignProvider.MOBIDEA.value,
-            converted=True,
-        ).count()
-
-        campaing_tracker_mobedia_month = CampaignTracker.objects.filter(
-            created_at__month=date_obj.month,
-            provider=choices.CampaignProvider.MOBIDEA.value,
-            converted=True,
-        ).count()
-
-        campaing_tracker_angel = CampaignTracker.objects.filter(
-            created_at__date=date_obj.date(),
-            provider=choices.CampaignProvider.ANGELMEDIA.value,
-            converted=True,
-        ).count()
-
-        campaing_tracker_angel_month = CampaignTracker.objects.filter(
-            created_at__month=date_obj.month,
-            provider=choices.CampaignProvider.ANGELMEDIA.value,
-            converted=True,
-        ).count()
-
-        campaing_tracker_mob = CampaignTracker.objects.filter(
-            created_at__date=date_obj.date(),
-            provider=choices.CampaignProvider.MOBPLUS.value,
-            converted=True,
-        ).count()
-
-        campaing_tracker_mob_month = CampaignTracker.objects.filter(
-            created_at__month=date_obj.month,
-            provider=choices.CampaignProvider.MOBPLUS.value,
-            converted=True,
-        ).count()
-
-        campaign_not = CampaignNotificationBackup.objects.filter(
-            created_at__date=date_obj.date()
-        ).count()
-
-        user_prof = UserProfile.objects.filter(created_at__date=date_obj.date()).count()
-
-        ## revenues
-        datasync_qs = DataSync.objects.filter(created_at__date=date_obj.date())
-
-        subscriptions = datasync_qs.filter(type="SYNC_NOTIFICATION")
-        sub_revenue = (
-            subscriptions.aggregate(total=Sum("amount"))["total"]
-            if subscriptions.exists()
-            else 0
-        )
-
-        unsubs = datasync_qs.filter(type="UNSUBSCRIPTION_NOTIFICATION")
-
-        renewals = datasync_qs.filter(type="RENEWAL_NOTIFICATION")
-        renewals_revenue = (
-            renewals.aggregate(total=Sum("amount"))["total"] if renewals.exists() else 0
-        )
-
-        total_revenue = sub_revenue + renewals_revenue
-
+        day_1 = date_obj.replace(day=1)
+        date_filter = Q(converted_at__date=date_obj.date())
+        month_filter = Q(converted_at__date__range=(day_1.date(), date_obj.date()))
+        backup_filter = Q(created_at__date=date_obj.date())
+        remarketing_filter = Q(created_at__date__range=(day_1.date(), date_obj.date()))
+        user_filter = Q(created_at__date=date_obj.date())
+        datasync_filter = Q(created_at__date=date_obj.date())
     else:
-        campaing_tracker_neth = CampaignTracker.objects.filter(
-            created_at__month=today.month,
-            converted=True,
-            provider=choices.CampaignProvider.NETH.value,
-        ).count()
+        date_filter = Q(converted_at__month=today.month)
+        month_filter = date_filter
+        backup_filter = Q(created_at__month=today.month)
+        remarketing_filter = backup_filter
+        user_filter = backup_filter
+        datasync_filter = Q(created_at__month=today.month)
 
-        campaing_tracker_neth_month = campaing_tracker_neth
+    providers = [
+        ("NETH", choices.CampaignProvider.NETH.value),
+        ("MOBPLUS", choices.CampaignProvider.MOBPLUS.value),
+        ("MOBIDEA", choices.CampaignProvider.MOBIDEA.value),
+        ("ANGEL MEDIA", choices.CampaignProvider.ANGELMEDIA.value),
+        ("KMMOBI", choices.CampaignProvider.KMMOBI.value),
+        ("MOBIKOK", choices.CampaignProvider.MOBIKOK.value),
+    ]
 
-        campaing_tracker_mobedia = CampaignTracker.objects.filter(
-            created_at__month=today.month,
-            converted=True,
-            provider=choices.CampaignProvider.MOBIDEA.value,
-        ).count()
+    campaign_counts_today = {}
+    campaign_counts_month = {}
 
-        campaing_tracker_mobedia_month = campaing_tracker_mobedia
+    for label, provider in providers:
+        base_qs = models.CampaignTracker.objects.filter(provider=provider, converted=True)
+        today_count = base_qs.filter(date_filter).count()
+        month_count = base_qs.filter(month_filter).count()
+        campaign_counts_today[label] = today_count
+        campaign_counts_month[label] = month_count
 
-        campaing_tracker_angel = CampaignTracker.objects.filter(
-            created_at__month=today.month,
-            provider=choices.CampaignProvider.ANGELMEDIA.value,
-            converted=True,
-        ).count()
+    campaign_not = models.CampaignNotificationBackup.objects.filter(backup_filter).count()
 
-        campaing_tracker_angel_month = campaing_tracker_angel
+    remarketing_today = models.CampaignDuplicate.objects.filter(backup_filter, remarketed=True).count()
+    remarketing_month = models.CampaignDuplicate.objects.filter(remarketing_filter, remarketed=True).count()
 
-        campaing_tracker_mob = CampaignTracker.objects.filter(
-            created_at__month=today.month,
-            converted=True,
-            provider=choices.CampaignProvider.MOBPLUS.value,
-        ).count()
+    user_prof = models.UserProfile.objects.filter(user_filter).count()
 
-        campaing_tracker_mob_month = campaing_tracker_mob
+    datasync_qs = models.DataSync.objects.filter(datasync_filter)
+    subscriptions = datasync_qs.filter(type="SYNC_NOTIFICATION")
+    renewals = datasync_qs.filter(type="RENEWAL_NOTIFICATION")
+    unsubs = datasync_qs.filter(type="UNSUBSCRIPTION_NOTIFICATION")
 
-        campaign_not = CampaignNotificationBackup.objects.filter(
-            created_at__month=today.month
-        ).count()
+    sub_revenue = subscriptions.aggregate(total=Sum("amount"))["total"] or 0
+    renewals_revenue = renewals.aggregate(total=Sum("amount"))["total"] or 0
+    total_revenue = sub_revenue + renewals_revenue
 
-        user_prof = UserProfile.objects.filter(created_at__month=today.month).count()
-        # revenue
-
-        datasync_qs = DataSync.objects.filter(created_at__month=today.month)
-
-        subscriptions = datasync_qs.filter(type="SYNC_NOTIFICATION")
-        sub_revenue = (
-            subscriptions.aggregate(total=Sum("amount"))["total"]
-            if subscriptions.exists()
-            else 0
-        )
-
-        unsubs = datasync_qs.filter(type="UNSUBSCRIPTION_NOTIFICATION")
-
-        renewals = datasync_qs.filter(type="RENEWAL_NOTIFICATION")
-        renewals_revenue = (
-            renewals.aggregate(total=Sum("amount"))["total"] if renewals.exists() else 0
-        )
-
-        total_revenue = sub_revenue + renewals_revenue
-
+    # Compose the final response
     data = {
         "New Users Aquisition": user_prof,
-        "Web Traffic Conversions[Daan]": campaing_tracker_neth,
-        "Web Traffic Conversions[Daan][Month Count]": campaing_tracker_neth_month,
-        "Web Traffic Conversions[MobPlus]": campaing_tracker_mob,
-        "Web Traffic Conversions[MobPlus][Month Count]": campaing_tracker_mob_month,
-        "Web Traffic [MOBEDIA][Today]": campaing_tracker_mobedia,
-        "Web Traffic [MOBEDIA][Month Count]": campaing_tracker_mobedia_month,
-        "Web Traffic [ANGEL MEDIA][Today]": campaing_tracker_angel,
-        "Web Traffic [ANGEL MEDIA][Month Count]": campaing_tracker_angel_month,
+        "Web Traffic [Re-Marketing][Today]": remarketing_today,
+        "Web Traffic [Re-Marketing][Month Count]": remarketing_month,
         "campaign_notifications": campaign_not,
         "Revenue Data": {
             "New Subscribtion Count": subscriptions.count(),
@@ -436,28 +343,59 @@ def fetch_stats(request):
             "Total Revenue": total_revenue,
         },
     }
-    print(f"data is {data}")
-    try:
-        EMAIL_SUBJECT = f"GameSplash Fetch stats Report for {the_day}"
-        REPORTING_MSG = f"""
-            Hello Admin,
-            Please find the report for {the_day}.
-            {data}
-            Regards.
-            """.format()
-        send_email(
-            recipients=[
-                "olushola@scriptdeskng.com",
-                "adeola.olalekan@cloudintegratedinc.com",
-            ],
-            subject=EMAIL_SUBJECT,
-            body_text=REPORTING_MSG,
-            quiet=False,
-        )
-    except Exception as ex:
-        print(ex)
-        pass
+
+    for label in campaign_counts_today:
+        data[f"WT [{label}][Today]"] = campaign_counts_today[label]
+        data[f"WT [{label}][Month Count]"] = campaign_counts_month[label]
+
     return JsonResponse(data)
+
+
+
+
+def get_cr_data(request):
+    today = datetime.now()
+    the_day = request.GET.get("day", None)
+    if the_day:
+        date_format = "%Y-%m-%d %H:%M:%S"
+        date_obj = datetime.strptime(f"{the_day} 00:00:00", date_format).date()
+    else:
+        date_obj = today.date()
+
+    partner = request.GET.get("partner")
+    if not partner:
+        return JsonResponse({"status": 400, "message": "Partner required"})
+
+    tracks_qs = models.CampaignTracker.objects.filter(
+        created_at__date=date_obj,
+        provider=partner,
+    )
+    unique_tracks = tracks_qs.filter(occurence=0)
+    converted = tracks_qs.filter(converted=True)
+
+    traffic_hits = tracks_qs.count()
+    unique_traffic = unique_tracks.count()
+    converted_count = converted.count()
+
+    print(
+        f"traffic_hits:{traffic_hits}, unique_traffic:{unique_traffic}, converted_count:{converted_count}",
+    )
+
+    try:
+        cr = (converted_count / traffic_hits) * 100
+    except Exception:
+        cr = 0
+
+    data = {
+        "Traffic Hit": traffic_hits,
+        "Unique Traffic Hits": unique_traffic,
+        "Converted": converted_count,
+        "CR": cr,
+    }
+    return JsonResponse(data)
+
+
+
 
 
 # @require_POST
