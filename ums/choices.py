@@ -56,6 +56,7 @@ class CampaignProvider(DocEnum):
     ANGELMEDIA = "ANGELMEDIA", "ANGELMEDIA"
     KMMOBI = "KMMOBI", "KMMOBI"
     MOBIKOK = "MOBIKOK", "MOBIKOK"
+    SHINE = "SHINE", "SHINE"
 
 
 _readable_provider = {
@@ -65,6 +66,7 @@ _readable_provider = {
     CampaignProvider.ANGELMEDIA.value: _("ANGELMEDIA"),
     CampaignProvider.KMMOBI.value: _("KMMOBI"),
     CampaignProvider.MOBIKOK.value: _("MOBIKOK"),
+    CampaignProvider.SHINE.value: _("SHINE"),
 }
 
 
