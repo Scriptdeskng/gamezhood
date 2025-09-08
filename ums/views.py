@@ -972,7 +972,7 @@ def shine_campaign_url(request):
 
         new_promo_hit.save()
         traffic_source = "Shine Digital"
-        redirect_url = f"http://ng-app.com/AVANZAR/homerecipe-landing-en-doi-web?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
+        redirect_url = f"http://ng-app.com/AVANZAR/gamezhood-landing-en-doi-web?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
         return HttpResponseRedirect(redirect_url)
     except Exception as ex:
         logger.error("exception occurred", exc_info=True)
