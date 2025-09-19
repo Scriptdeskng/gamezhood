@@ -407,7 +407,7 @@ def process_mobplus_postback(tracker_id, sync_id, sub_id):
         data_sync = DataSync.objects.get(id=sync_id)
         user_sub = UserSubscribtion.objects.get(id=sub_id)
         theUser = user_sub.user
-        sub_amount = "0.35"
+        sub_amount = "0.45"
         today = timezone.now()
 
         # check campaign tracker is msisdn is there
