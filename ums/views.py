@@ -422,6 +422,7 @@ def get_cr_data(request):
 @csrf_exempt
 def data_sync_v2(request):
     try:
+        tasks.share_datasync.delay(request.body.decode("utf-8"))
         WebhookBackup.objects.create(
             req_body=f"{request.body.decode('utf-8')}"
         )

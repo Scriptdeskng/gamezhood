@@ -236,6 +236,20 @@ def handle_postback_delay(provider: str, tracker_id, new_sync_data_id, user_sub_
     return postback_processes[provider].delay(tracker_id, new_sync_data_id, user_sub_id)
 
 
+@shared_task
+def share_datasync(request_body):
+    try:
+        resp = requests.post(
+            "https://api.intellihq.net/api/v1/service/8/sync-notification/",
+            data=request_body,
+            headers={"Content-Type": "application/json"},
+        )
+        resp.raise_for_status()
+    except Exception as req_ex:
+        logger.error(f"Subscription processing error: {req_ex}")
+    logger.info(f"Intelli sync request sent{resp}")
+
+
 
 # @shared_task
 def process_datasync(payload):
