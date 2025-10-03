@@ -332,7 +332,7 @@ def fetch_stats(request):
 
 
     # upstream
-    upstream = subscriptions.filter(telco_ref__icontains="upstream_paid")
+    upstream = subscriptions.filter(telco_ref__icontains="upstream_paid").distinct("phone")
 
     # Compose the final response
     data = {
