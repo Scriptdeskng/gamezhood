@@ -43,6 +43,7 @@ urlpatterns = [
     path("campaign/angel-media/", angel_media_campaign_url, name="campaign-angel-media"),
     path("campaign/tc/", neth_campaign_url, name="campaign-neth"),
     path("campaign/shine/", shine_campaign_url, name="campaign-shine"),
+    path("campaign/mobipium/", mobipium_campaign_url, name="campaign-mobipium"),
 
     path(
         "get_cr_data/",
