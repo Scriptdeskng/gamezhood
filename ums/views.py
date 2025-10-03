@@ -300,6 +300,8 @@ def fetch_stats(request):
         ("ANGEL MEDIA", choices.CampaignProvider.ANGELMEDIA.value),
         ("KMMOBI", choices.CampaignProvider.KMMOBI.value),
         ("MOBIKOK", choices.CampaignProvider.MOBIKOK.value),
+        ("SHINE", choices.CampaignProvider.SHINE.value),
+        ("MOBIPIUM", choices.CampaignProvider.MOBIPIUM.value),
     ]
 
     campaign_counts_today = {}
@@ -328,11 +330,16 @@ def fetch_stats(request):
     renewals_revenue = renewals.aggregate(total=Sum("amount"))["total"] or 0
     total_revenue = sub_revenue + renewals_revenue
 
+
+    # upstream
+    upstream = subscriptions.filter(telco_ref__icontains="upstream_paid")
+
     # Compose the final response
     data = {
         "New Users Aquisition": user_prof,
         "Web Traffic [Re-Marketing][Today]": remarketing_today,
         "Web Traffic [Re-Marketing][Month Count]": remarketing_month,
+        "Upstream[Today]": upstream.count(),
         "campaign_notifications": campaign_not,
         "Revenue Data": {
             "New Subscribtion Count": subscriptions.count(),
