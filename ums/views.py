@@ -907,6 +907,7 @@ def neth_campaign_url(request):
         click_id = request.GET.get("clickid", None)
         telco = request.GET.get("telco", None)
         pubid = request.GET.get("pubid", None)
+        return redirect("content:home")
 
         unique_sub_ref = get_random_string(length=48)
 
