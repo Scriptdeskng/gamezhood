@@ -770,6 +770,7 @@ def check_sub_status(request):
 
 
 def kmmobi_campaign_url(request):
+    return redirect("content:home")
     try:
         partner = request.GET.get("partner", None)
         click_id = request.GET.get("clickid", None)
@@ -814,6 +815,7 @@ def kmmobi_campaign_url(request):
 
 
 def mobikok_campaign_url(request):
+    return redirect("content:home")
     try:
         partner = request.GET.get("partner", None)
         click_id = request.GET.get("clickid", None)
@@ -858,6 +860,7 @@ def mobikok_campaign_url(request):
 
 
 def angel_media_campaign_url(request):
+    return redirect("content:home")
     try:
         partner = request.GET.get("partner", None)
         click_id = request.GET.get("clickid", None)
@@ -947,6 +950,7 @@ def neth_campaign_url(request):
 
 
 def shine_campaign_url(request):
+    return redirect("content:home")
     try:
         partner = request.GET.get("partner", None)
         click_id = request.GET.get("clickid", None)
@@ -991,6 +995,7 @@ def shine_campaign_url(request):
 
 
 def mobipium_campaign_url(request):
+    return redirect("content:home")
     try:
         partner = request.GET.get("partner", None)
         click_id = request.GET.get("clickid", None)
