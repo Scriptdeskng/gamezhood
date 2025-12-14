@@ -3,11 +3,9 @@ from django.shortcuts import render
 # Create your views here.
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_POST, require_GET
-from django.shortcuts import render, HttpResponse, redirect, HttpResponseRedirect
+from django.shortcuts import HttpResponse, redirect, HttpResponseRedirect
 from django.views.decorators.csrf import csrf_exempt
-from content.mail import send_email
 
-from dateutil.relativedelta import relativedelta
 
 from django.db.models import Sum, Q
 from celery.result import AsyncResult
@@ -38,7 +36,7 @@ def subscribe(request):
     try:
         res = get_random_string(length=48)
         traffic_source = "Organic Search"
-        redirect_url = f"http://ng-app.com/AVANZAR/gamezhood-landing-en-doi-web?origin_banner=1&trxId={res}&trfsrc={traffic_source}"
+        redirect_url = f"http://mtn-nigeria-prod.mfilterit.org/sid/234102200008007?origin_banner=1&trxId={res}&trfsrc={traffic_source}"
         return redirect(redirect_url)
     except Exception as ex:
         print(ex)
@@ -124,7 +122,6 @@ def data_sync(request):
             new_sync_data.auto_renewal = the_data["details"]["auto_renewal"]
         if the_data["details"]["expiry"]:
             new_sync_data.sub_expiry = the_data["details"]["expiry"]
-    
 
         new_sync_data.save()
     except Exception as ex:
@@ -176,8 +173,6 @@ def data_sync(request):
 
                 theUser.sub_status = "active"
                 theUser.save()
-
-             
 
                 return HttpResponse(200)
 
@@ -235,11 +230,8 @@ def data_sync(request):
 @require_POST
 @csrf_exempt
 def campaign_notification(request):
-    
-    new_sync = CampaignNotificationBackup.objects.create(
-        req_body=f"{request.body}"
-    )
-      
+
+    new_sync = CampaignNotificationBackup.objects.create(req_body=f"{request.body}")
 
     return HttpResponse(200)
 
@@ -256,14 +248,13 @@ def pullData(request):
         allRenewalSub = allSub.filter(renewal_sub=True, first_sub=False).count()
         print("all renewal sub", allRenewalSub)
 
-    except Exception as e:
+    except Exception:
         pass
 
     return HttpResponse(200)
 
 
 def generate_report(request):
-   
 
     tasks.fetch_report.delay()
     tasks.subscribtion_source_report.delay()
@@ -316,8 +307,12 @@ def fetch_stats(request):
 
     campaign_not = CampaignNotificationBackup.objects.filter(backup_filter).count()
 
-    remarketing_today = CampaignDuplicate.objects.filter(backup_filter, remarketed=True).count()
-    remarketing_month = CampaignDuplicate.objects.filter(remarketing_filter, remarketed=True).count()
+    remarketing_today = CampaignDuplicate.objects.filter(
+        backup_filter, remarketed=True
+    ).count()
+    remarketing_month = CampaignDuplicate.objects.filter(
+        remarketing_filter, remarketed=True
+    ).count()
 
     user_prof = UserProfile.objects.filter(user_filter).count()
 
@@ -330,9 +325,10 @@ def fetch_stats(request):
     renewals_revenue = renewals.aggregate(total=Sum("amount"))["total"] or 0
     total_revenue = sub_revenue + renewals_revenue
 
-
     # upstream
-    upstream = subscriptions.filter(telco_ref__icontains="upstream_paid").distinct("phone")
+    upstream = subscriptions.filter(telco_ref__icontains="upstream_paid").distinct(
+        "phone"
+    )
 
     # Compose the final response
     data = {
@@ -356,8 +352,6 @@ def fetch_stats(request):
         data[f"WT [{label}][Month Count]"] = campaign_counts_month[label]
 
     return JsonResponse(data)
-
-
 
 
 def get_cr_data(request):
@@ -402,9 +396,6 @@ def get_cr_data(request):
     return JsonResponse(data)
 
 
-
-
-
 # @require_POST
 # @csrf_exempt
 # def data_sync_v2(request):
@@ -430,18 +421,30 @@ def get_cr_data(request):
 def data_sync_v2(request):
     try:
         tasks.share_datasync.delay(request.body.decode("utf-8"))
-        WebhookBackup.objects.create(
-            req_body=f"{request.body.decode('utf-8')}"
-        )
+        WebhookBackup.objects.create(req_body=f"{request.body.decode('utf-8')}")
         print(f"Receiving datasync payload for: {request.body}")
-        the_data = json.loads(request.body.decode('utf-8'))
+        the_data = json.loads(request.body.decode("utf-8"))
         datasync_task = tasks.process_datasync(the_data)
         if datasync_task["status"] == "Failed":
-            return JsonResponse({"status": 400, "error": f"Unable to process request-{datasync_task["error"]}"}, status=400)
-        return JsonResponse({"status": 200, "message": "ok, [gamezhood] data sync processed successfully"})
+            return JsonResponse(
+                {
+                    "status": 400,
+                    "error": f"Unable to process request-{datasync_task["error"]}",
+                },
+                status=400,
+            )
+        return JsonResponse(
+            {
+                "status": 200,
+                "message": "ok, [gamezhood] data sync processed successfully",
+            }
+        )
     except Exception as ex:
         print(ex)
-        return JsonResponse({"status": 400, "error": "Unable to process request", "details": str(ex)}, status=400)
+        return JsonResponse(
+            {"status": 400, "error": "Unable to process request", "details": str(ex)},
+            status=400,
+        )
 
 
 def check_task_result(request):
@@ -452,19 +455,19 @@ def check_task_result(request):
     result = AsyncResult(task_id, app=celery_app)
 
     if result.ready():
-        return JsonResponse({
-            "status": 200,
-            "message": "Task completed",
-            "result": result.result
-        })
+        return JsonResponse(
+            {"status": 200, "message": "Task completed", "result": result.result}
+        )
     else:
-        return JsonResponse({
-            "status": 202,
-            "message": "Task is still processing",
-            "task_status": result.status,
-            "result": result.result if result.ready() else None,
-        })
-    
+        return JsonResponse(
+            {
+                "status": 202,
+                "message": "Task is still processing",
+                "task_status": result.status,
+                "result": result.result if result.ready() else None,
+            }
+        )
+
 
 def fetch_campaign_behaviour(request):
 
@@ -538,8 +541,6 @@ def export_all_msisdn_query(request):
     return JsonResponse({"status": 200, "message": "Processing report!"})
 
 
-
-
 # def mobplus_campaign_url(request):
 #     try:
 #         partner = request.GET.get("partner", None)
@@ -551,7 +552,7 @@ def export_all_msisdn_query(request):
 #         msisdn = request.headers.get("Msisdn")
 #         if not msisdn:
 #             traffic_source = "OrganicSource"
-#             redirect_url = f"http://ng-app.com/AVANZAR/gamezhood-landing-en-doi-web?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
+#             redirect_url = f"http://mtn-nigeria-prod.mfilterit.org/sid/234102200008007?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
 #             return HttpResponseRedirect(redirect_url)
 
 #         if msisdn.startswith("0") and len(msisdn) == 11:
@@ -572,8 +573,8 @@ def export_all_msisdn_query(request):
 #             new_promo_hit.partner = partner or new_promo_hit.partner
 #             new_promo_hit.telco = telco or new_promo_hit.telco
 #             new_promo_hit.pubid = pubid or new_promo_hit.pubid
-#             # new_promo_hit.save() 
-        
+#             # new_promo_hit.save()
+
 
 #         user_prof = UserProfile.objects.filter(phone=msisdn).first()
 #         if user_prof:
@@ -591,7 +592,7 @@ def export_all_msisdn_query(request):
 #                 new_promo_hit.is_convertable = False
 #                 ### redirect as organic source
 #                 traffic_source = "OrganicSource"
-#                 redirect_url = f"http://ng-app.com/AVANZAR/gamezhood-landing-en-doi-web?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
+#                 redirect_url = f"http://mtn-nigeria-prod.mfilterit.org/sid/234102200008007?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
 #                 return HttpResponseRedirect(redirect_url)
 #             else:
 #                 return redirect("core:home")
@@ -599,11 +600,12 @@ def export_all_msisdn_query(request):
 #         new_promo_hit.save()
 #         tasks.handle_occurence.delay(new_promo_hit.id)
 #         traffic_source = "MobPlus"
-#         redirect_url = f"http://ng-app.com/AVANZAR/gamezhood-landing-en-doi-web?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
+#         redirect_url = f"http://mtn-nigeria-prod.mfilterit.org/sid/234102200008007?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
 #         return HttpResponseRedirect(redirect_url)
 #     except Exception as ex:
 #         logger.error("exception occurred", exc_info=True)
 #         return redirect("core:home")
+
 
 def mobplus_campaign_url(request):
     try:
@@ -613,7 +615,6 @@ def mobplus_campaign_url(request):
         pubid = request.GET.get("pubid", None)
 
         unique_sub_ref = get_random_string(length=48)
-
 
         new_promo_hit = CampaignTracker.objects.filter(
             click_id=click_id, provider=choices.CampaignProvider.MOBPLUS.value
@@ -630,27 +631,26 @@ def mobplus_campaign_url(request):
             new_promo_hit.telco = telco or new_promo_hit.telco
             new_promo_hit.pubid = pubid or new_promo_hit.pubid
 
-
         msisdn = request.headers.get("Msisdn")
         if msisdn:
             if msisdn.startswith("0") and len(msisdn) == 11:
                 msisdn = msisdn.replace("0", "234", 1)
-            
+
             new_promo_hit.msisdn = msisdn
 
         new_promo_hit.save()
         traffic_source = "MobPlus"
-        redirect_url = f"http://ng-app.com/AVANZAR/gamezhood-landing-en-doi-web?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
+        redirect_url = f"http://mtn-nigeria-prod.mfilterit.org/sid/234102200008007?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
         return HttpResponseRedirect(redirect_url)
-    except Exception as ex:
+    except Exception:
         logger.error("exception occurred", exc_info=True)
         return redirect("content:home")
-    
+
+
 @require_GET
 @csrf_exempt
 def check_sub_status(request):
     data = dict(request.headers)
-
 
     json_resp = {}
 
@@ -698,8 +698,6 @@ def check_sub_status(request):
     )
 
 
-
-
 # def kmmobi_campaign_url(request):
 #     try:
 #         partner = request.GET.get("partner", None)
@@ -711,7 +709,7 @@ def check_sub_status(request):
 #         msisdn = request.headers.get("Msisdn")
 #         if not msisdn:
 #             traffic_source = "OrganicSource"
-#             redirect_url = f"http://ng-app.com/AVANZAR/gamezhood-landing-en-doi-web?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
+#             redirect_url = f"http://mtn-nigeria-prod.mfilterit.org/sid/234102200008007?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
 #             return HttpResponseRedirect(redirect_url)
 
 #         if msisdn.startswith("0") and len(msisdn) == 11:
@@ -732,8 +730,8 @@ def check_sub_status(request):
 #             new_promo_hit.partner = partner or new_promo_hit.partner
 #             new_promo_hit.telco = telco or new_promo_hit.telco
 #             new_promo_hit.pubid = pubid or new_promo_hit.pubid
-#             # new_promo_hit.save() 
-        
+#             # new_promo_hit.save()
+
 
 #         user_prof = UserProfile.objects.filter(phone=msisdn).first()
 #         if user_prof:
@@ -751,7 +749,7 @@ def check_sub_status(request):
 #                 new_promo_hit.is_convertable = False
 #                 ### redirect as organic source
 #                 traffic_source = "OrganicSource"
-#                 redirect_url = f"http://ng-app.com/AVANZAR/gamezhood-landing-en-doi-web?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
+#                 redirect_url = f"http://mtn-nigeria-prod.mfilterit.org/sid/234102200008007?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
 #                 return HttpResponseRedirect(redirect_url)
 #             else:
 #                 return redirect("content:home")
@@ -759,14 +757,11 @@ def check_sub_status(request):
 #         new_promo_hit.save()
 #         tasks.handle_occurence.delay(new_promo_hit.id)
 #         traffic_source = "KM Mobi"
-#         redirect_url = f"http://ng-app.com/AVANZAR/gamezhood-landing-en-doi-web?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
+#         redirect_url = f"http://mtn-nigeria-prod.mfilterit.org/sid/234102200008007?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
 #         return HttpResponseRedirect(redirect_url)
 #     except Exception as ex:
 #         logger.error("exception occurred", exc_info=True)
 #         return redirect("content:home")
-
-
-
 
 
 def kmmobi_campaign_url(request):
@@ -778,7 +773,6 @@ def kmmobi_campaign_url(request):
         pubid = request.GET.get("pubid", None)
 
         unique_sub_ref = get_random_string(length=48)
-
 
         new_promo_hit = CampaignTracker.objects.filter(
             click_id=click_id, provider=choices.CampaignProvider.KMMOBI.value
@@ -795,23 +789,20 @@ def kmmobi_campaign_url(request):
             new_promo_hit.telco = telco or new_promo_hit.telco
             new_promo_hit.pubid = pubid or new_promo_hit.pubid
 
-
         msisdn = request.headers.get("Msisdn")
         if msisdn:
             if msisdn.startswith("0") and len(msisdn) == 11:
                 msisdn = msisdn.replace("0", "234", 1)
-            
+
             new_promo_hit.msisdn = msisdn
 
         new_promo_hit.save()
         traffic_source = "KM Mobi"
-        redirect_url = f"http://ng-app.com/AVANZAR/gamezhood-landing-en-doi-web?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
+        redirect_url = f"http://mtn-nigeria-prod.mfilterit.org/sid/234102200008007?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
         return HttpResponseRedirect(redirect_url)
-    except Exception as ex:
+    except Exception:
         logger.error("exception occurred", exc_info=True)
         return redirect("content:home")
-    
-
 
 
 def mobikok_campaign_url(request):
@@ -823,7 +814,6 @@ def mobikok_campaign_url(request):
         pubid = request.GET.get("pubid", None)
 
         unique_sub_ref = get_random_string(length=48)
-
 
         new_promo_hit = CampaignTracker.objects.filter(
             click_id=click_id, provider=choices.CampaignProvider.MOBIKOK.value
@@ -840,23 +830,20 @@ def mobikok_campaign_url(request):
             new_promo_hit.telco = telco or new_promo_hit.telco
             new_promo_hit.pubid = pubid or new_promo_hit.pubid
 
-
         msisdn = request.headers.get("Msisdn")
         if msisdn:
             if msisdn.startswith("0") and len(msisdn) == 11:
                 msisdn = msisdn.replace("0", "234", 1)
-            
+
             new_promo_hit.msisdn = msisdn
 
         new_promo_hit.save()
         traffic_source = "Mobikok"
-        redirect_url = f"http://ng-app.com/AVANZAR/gamezhood-landing-en-doi-web?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
+        redirect_url = f"http://mtn-nigeria-prod.mfilterit.org/sid/234102200008007?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
         return HttpResponseRedirect(redirect_url)
-    except Exception as ex:
+    except Exception:
         logger.error("exception occurred", exc_info=True)
         return redirect("content:home")
-    
-
 
 
 def angel_media_campaign_url(request):
@@ -868,7 +855,6 @@ def angel_media_campaign_url(request):
         pubid = request.GET.get("pubid", None)
 
         unique_sub_ref = get_random_string(length=48)
-
 
         new_promo_hit = CampaignTracker.objects.filter(
             click_id=click_id, provider=choices.CampaignProvider.ANGELMEDIA.value
@@ -885,23 +871,20 @@ def angel_media_campaign_url(request):
             new_promo_hit.telco = telco or new_promo_hit.telco
             new_promo_hit.pubid = pubid or new_promo_hit.pubid
 
-
         msisdn = request.headers.get("Msisdn")
         if msisdn:
             if msisdn.startswith("0") and len(msisdn) == 11:
                 msisdn = msisdn.replace("0", "234", 1)
-            
+
             new_promo_hit.msisdn = msisdn
 
         new_promo_hit.save()
         traffic_source = "Janx"
-        redirect_url = f"http://ng-app.com/AVANZAR/gamezhood-landing-en-doi-web?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
+        redirect_url = f"http://mtn-nigeria-prod.mfilterit.org/sid/234102200008007?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
         return HttpResponseRedirect(redirect_url)
-    except Exception as ex:
+    except Exception:
         logger.error("exception occurred", exc_info=True)
         return redirect("content:home")
-    
-
 
 
 def neth_campaign_url(request):
@@ -913,7 +896,6 @@ def neth_campaign_url(request):
         return redirect("content:home")
 
         unique_sub_ref = get_random_string(length=48)
-
 
         new_promo_hit = CampaignTracker.objects.filter(
             click_id=click_id, provider=choices.CampaignProvider.NETH.value
@@ -930,23 +912,20 @@ def neth_campaign_url(request):
             new_promo_hit.telco = telco or new_promo_hit.telco
             new_promo_hit.pubid = pubid or new_promo_hit.pubid
 
-
         msisdn = request.headers.get("Msisdn")
         if msisdn:
             if msisdn.startswith("0") and len(msisdn) == 11:
                 msisdn = msisdn.replace("0", "234", 1)
-            
+
             new_promo_hit.msisdn = msisdn
 
         new_promo_hit.save()
         traffic_source = "Traffic Company"
-        redirect_url = f"http://ng-app.com/AVANZAR/gamezhood-landing-en-doi-web?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
+        redirect_url = f"http://mtn-nigeria-prod.mfilterit.org/sid/234102200008007?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
         return HttpResponseRedirect(redirect_url)
-    except Exception as ex:
+    except Exception:
         logger.error("exception occurred", exc_info=True)
         return redirect("content:home")
-    
-
 
 
 def shine_campaign_url(request):
@@ -958,7 +937,6 @@ def shine_campaign_url(request):
         pubid = request.GET.get("pubid", None)
 
         unique_sub_ref = get_random_string(length=48)
-
 
         new_promo_hit = CampaignTracker.objects.filter(
             click_id=click_id, provider=choices.CampaignProvider.SHINE.value
@@ -975,23 +953,20 @@ def shine_campaign_url(request):
             new_promo_hit.telco = telco or new_promo_hit.telco
             new_promo_hit.pubid = pubid or new_promo_hit.pubid
 
-
         msisdn = request.headers.get("Msisdn")
         if msisdn:
             if msisdn.startswith("0") and len(msisdn) == 11:
                 msisdn = msisdn.replace("0", "234", 1)
-            
+
             new_promo_hit.msisdn = msisdn
 
         new_promo_hit.save()
         traffic_source = "Shine Digital"
-        redirect_url = f"http://ng-app.com/AVANZAR/gamezhood-landing-en-doi-web?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
+        redirect_url = f"http://mtn-nigeria-prod.mfilterit.org/sid/234102200008007?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
         return HttpResponseRedirect(redirect_url)
-    except Exception as ex:
+    except Exception:
         logger.error("exception occurred", exc_info=True)
         return redirect("content:home")
-    
-
 
 
 def mobipium_campaign_url(request):
@@ -1003,7 +978,6 @@ def mobipium_campaign_url(request):
         pubid = request.GET.get("pubid", None)
 
         unique_sub_ref = get_random_string(length=48)
-
 
         new_promo_hit = CampaignTracker.objects.filter(
             click_id=click_id, provider=choices.CampaignProvider.MOBIPIUM.value
@@ -1020,18 +994,17 @@ def mobipium_campaign_url(request):
             new_promo_hit.telco = telco or new_promo_hit.telco
             new_promo_hit.pubid = pubid or new_promo_hit.pubid
 
-
         msisdn = request.headers.get("Msisdn")
         if msisdn:
             if msisdn.startswith("0") and len(msisdn) == 11:
                 msisdn = msisdn.replace("0", "234", 1)
-            
+
             new_promo_hit.msisdn = msisdn
 
         new_promo_hit.save()
         traffic_source = "Shine Digital"
-        redirect_url = f"http://ng-app.com/AVANZAR/gamezhood-landing-en-doi-web?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
+        redirect_url = f"http://mtn-nigeria-prod.mfilterit.org/sid/234102200008007?origin_banner=1&trxId={unique_sub_ref}&trfsrc={traffic_source}"
         return HttpResponseRedirect(redirect_url)
-    except Exception as ex:
+    except Exception:
         logger.error("exception occurred", exc_info=True)
         return redirect("content:home")
