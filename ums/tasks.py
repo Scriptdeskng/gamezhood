@@ -21,7 +21,6 @@ from .models import (
     UserSubscribtion,
     CampaignDuplicate,
     CampaignTracker,
-    WebhookBackup,
     UserProfile,
 )
 
@@ -210,7 +209,7 @@ def handle_datasync_payload(payload):
         phone=payload["details"]["phone"],
         telco_ref=payload["details"]["telco_ref"],
     )
-    new_sync_data.telco = payload.get("telco"),
+    new_sync_data.telco = (payload.get("telco"),)
     new_sync_data.amount = int(payload["details"].get("amount", 0))
     new_sync_data.channel = payload["details"].get("channel")
     new_sync_data.sub_date = payload["details"].get("date")
@@ -251,7 +250,6 @@ def share_datasync(request_body):
     logger.info(f"Intelli sync request sent{resp}")
 
 
-
 # @shared_task
 def process_datasync(payload):
     try:
@@ -284,9 +282,12 @@ def process_datasync(payload):
 
             if not sub_created:
                 userSub.first_sub = True
-                if payload["details"].get("auto_renewal") and payload["details"]["auto_renewal"]:
+                if (
+                    payload["details"].get("auto_renewal")
+                    and payload["details"]["auto_renewal"]
+                ):
                     userSub.auto_renewal = True
-                
+
             theUser.sub_status = "active"
             # theUser.save()
 
@@ -329,7 +330,9 @@ def process_datasync(payload):
 
             userSub.auto_renewal = bool(payload["details"].get("auto_renewal"))
 
-            theUser.sub_status = "active" if end_datetime.astimezone() > today else "inactive"
+            theUser.sub_status = (
+                "active" if end_datetime.astimezone() > today else "inactive"
+            )
 
         userSub.save()
         theUser.save()
@@ -338,7 +341,6 @@ def process_datasync(payload):
     except Exception as ex:
         logger.error(ex)
         return {"status": "Failed", "error": str(ex)}
-
 
 
 @shared_task
@@ -378,7 +380,7 @@ def process_kmmobi_postback(tracker_id, sync_id, sub_id):
             user_sub.save()
     except Exception as ex:
         logger.error(ex)
-        
+
 
 @shared_task
 def process_neth_postback(tracker_id, sync_id, sub_id):
@@ -391,8 +393,10 @@ def process_neth_postback(tracker_id, sync_id, sub_id):
         # check campaign tracker is msisdn is there
         find_promo_msisdn = CampaignTracker.objects.get(id=tracker_id)
 
-        if  find_promo_msisdn.converted == False and find_promo_msisdn.is_convertable == True:
-
+        if (
+            find_promo_msisdn.converted == False
+            and find_promo_msisdn.is_convertable == True
+        ):
 
             postbackUrl = f"https://postback.level23.nl/?currency=USD&handler=11556&hash=70fab57722baa9edfba229094ae78d26&tracker={find_promo_msisdn.click_id}"
 
@@ -414,6 +418,7 @@ def process_neth_postback(tracker_id, sync_id, sub_id):
 
     except Exception as ex:
         logger.error(ex)
+
 
 # process mobplus postback
 @shared_task
@@ -534,6 +539,7 @@ def process_angel_media_postback(tracker_id, sync_id, sub_id):
     except Exception as ex:
         logger.error(ex)
 
+
 # process mobplus postback
 @shared_task
 def process_mobikok_postback(tracker_id, sync_id, sub_id):
@@ -547,7 +553,10 @@ def process_mobikok_postback(tracker_id, sync_id, sub_id):
         # check campaign tracker is msisdn is there
         find_promo_msisdn = CampaignTracker.objects.get(id=tracker_id)
 
-        if  find_promo_msisdn.converted == False and find_promo_msisdn.is_convertable == True:
+        if (
+            find_promo_msisdn.converted == False
+            and find_promo_msisdn.is_convertable == True
+        ):
 
             postbackUrl = f"http://trace.sm4link.com/pb?tid={find_promo_msisdn.click_id}&pubId={find_promo_msisdn.pubid}"
 
@@ -571,7 +580,6 @@ def process_mobikok_postback(tracker_id, sync_id, sub_id):
         logger.error(ex)
 
 
-
 # process mobplus postback
 @shared_task
 def process_shine_postback(tracker_id, sync_id, sub_id):
@@ -585,7 +593,10 @@ def process_shine_postback(tracker_id, sync_id, sub_id):
         # check campaign tracker is msisdn is there
         find_promo_msisdn = CampaignTracker.objects.get(id=tracker_id)
 
-        if  find_promo_msisdn.converted == False and find_promo_msisdn.is_convertable == True:
+        if (
+            find_promo_msisdn.converted == False
+            and find_promo_msisdn.is_convertable == True
+        ):
             postbackUrl = f"http://shinedigitalworld.offerstrack.net/advBack.php?click_id={find_promo_msisdn.click_id}"
 
             requests.get(postbackUrl)
@@ -608,7 +619,6 @@ def process_shine_postback(tracker_id, sync_id, sub_id):
         logger.error(ex)
 
 
-
 @shared_task
 def process_mobipium_postback(tracker_id, sync_id, sub_id):
     try:
@@ -621,7 +631,10 @@ def process_mobipium_postback(tracker_id, sync_id, sub_id):
         # check campaign tracker is msisdn is there
         find_promo_msisdn = CampaignTracker.objects.get(id=tracker_id)
 
-        if  find_promo_msisdn.converted == False and find_promo_msisdn.is_convertable == True:
+        if (
+            find_promo_msisdn.converted == False
+            and find_promo_msisdn.is_convertable == True
+        ):
             postbackUrl = f"https://smobipiumlink.com/conversion/index.php?jp={find_promo_msisdn.click_id}&source={find_promo_msisdn.pubid} "
 
             requests.get(postbackUrl)
@@ -644,7 +657,6 @@ def process_mobipium_postback(tracker_id, sync_id, sub_id):
         logger.error(ex)
 
 
-
 @shared_task
 def campaign_behaviour(start_date, end_date):
 
@@ -657,17 +669,17 @@ def campaign_behaviour(start_date, end_date):
     logger.info(start_date, end_date)
 
     if not (start_date or end_date):
-        logger.info(f"start or end date required")
+        logger.info("start or end date required")
         return
 
     start_date = datetime.strptime(start_date, "%Y-%m-%d")
     end_date = datetime.strptime(end_date, "%Y-%m-%d")
     logger.info(f"pulling reports between {start_date} and {end_date}")
     if end_date <= start_date:
-        logger.info(f"end date should be greater than start date")
+        logger.info("end date should be greater than start date")
         return
     if (end_date - start_date).days > 30:
-        logger.info(f"max days allowed is 30")
+        logger.info("max days allowed is 30")
         return
 
     # pull all datasync subscribtion for each provider
@@ -780,10 +792,10 @@ def campaign_behaviour_daily_report(start_date, end_date):
     end_date = datetime.strptime(end_date, "%Y-%m-%d")
     logger.info(f"pulling reports between {start_date} and {end_date}")
     if end_date <= start_date:
-        logger.info(f"end date should be greater than start date")
+        logger.info("end date should be greater than start date")
         return
     if (end_date - start_date).days > 30:
-        logger.info(f"max days allowed is 30")
+        logger.info("max days allowed is 30")
         return
 
     curr_path = os.path.dirname(os.path.realpath(__file__))
@@ -873,7 +885,7 @@ def campaign_behaviour_daily_report(start_date, end_date):
     logger.info(report_path, os.path.exists(report_path), filename)
 
     try:
-        EMAIL_SUBJECT = f"GameSplash Campaign Behaviour Daily stats"
+        EMAIL_SUBJECT = "Gamezhood Campaign Behaviour Daily stats"
         REPORTING_MSG = """
             Hello Admin,
             Please find the attached stats report requested.
@@ -1000,7 +1012,9 @@ def subscribtion_source_report():
 
         ### send email
 
-        EMAIL_SUBJECT = f'GameSplash Subscription Source Report for {yesterday.strftime("%d/%m/%Y")}'
+        EMAIL_SUBJECT = (
+            f'Gamezhood Subscription Source Report for {yesterday.strftime("%d/%m/%Y")}'
+        )
         REPORTING_MSG = """
             Hello Admin,
             Please find the attached report for today.
@@ -1079,7 +1093,7 @@ def pull_3rd_party_acquisition():
     logger.info(report_path, os.path.exists(report_path), filename)
 
     try:
-        EMAIL_SUBJECT = f"[GameSplash] 3rd party acquisition report"
+        EMAIL_SUBJECT = "[Gamezhood] 3rd party acquisition report"
         REPORTING_MSG = """
             Hello Admin,
             Please find the attached report.
@@ -1165,7 +1179,7 @@ def pull_3rd_party_acquisition_count():
     logger.info(report_path, os.path.exists(report_path), filename)
 
     try:
-        EMAIL_SUBJECT = f"[GameSplash] 3rd party acquisition report"
+        EMAIL_SUBJECT = "[Gamezhood] 3rd party acquisition report"
         REPORTING_MSG = """
             Hello Admin,
             Please find the attached report.
@@ -1242,6 +1256,68 @@ def handle_remarketing(msisdn, provider):
 
 
 @shared_task
+def export_user_msisdn(month_num):
+    try:
+        # fetch all users
+
+        today = date.today()
+        user_profs = UserProfile.objects.filter(
+            created_at__month=int(month_num),
+        ).distinct("phone")
+        curr_path = os.path.dirname(os.path.realpath(__file__))
+
+        report_path = os.path.join(curr_path, "reports/")
+
+        filename = f"{report_path}MSISDN_Exports_{today.strftime('%d/%m/%Y').replace('/', '')}.xlsx"
+
+        data_cols = ["MSISDN", "Date"]
+
+        data = {}
+
+        for dt in data_cols:
+            data[dt] = []
+
+        for val in user_profs.all():
+            print(f"{val.phone} - {val.created_at}")
+            data["Date"].append(val.created_at.strftime("%d/%m/%Y"))
+            data["MSISDN"].append(val.phone)
+
+        new_df = pd.DataFrame(
+            {key: pd.Series(value, dtype=object) for key, value in data.items()},
+            columns=data_cols,
+        )
+        new_df.to_excel(filename, index=False, header=True)
+
+        logger.info(report_path, os.path.exists(report_path), filename)
+
+        ### send email
+
+        EMAIL_SUBJECT = "Gamezhood MSISDN report"
+        REPORTING_MSG = """
+            Hello Admin,
+            Please find the attached report .
+            Regards.
+            """
+
+        send_email(
+            recipients=[
+                "olushola@scriptdeskng.com",
+                "olusoji200@gmail.com",
+                "support@avanzar.com.ng",
+                ###
+            ],
+            subject=EMAIL_SUBJECT,
+            body_text=REPORTING_MSG,
+            attachment=filename,
+            attachment_mime_type="text/plain",
+            quiet=False,
+        )
+
+    except Exception:
+        logger.error(traceback.format_exc())
+
+
+@shared_task
 def export_all_msisdns():
     try:
         # fetch all ended User Subscription
@@ -1263,7 +1339,7 @@ def export_all_msisdns():
 
         ### send email
 
-        EMAIL_SUBJECT = f"Gamesplash Subscribers report"
+        EMAIL_SUBJECT = "Gamezhood Subscribers report"
         REPORTING_MSG = """
             Hello Admin,
             Please find the attached all the msisdn export.
@@ -1272,7 +1348,8 @@ def export_all_msisdns():
         send_email(
             recipients=[
                 "olushola@scriptdeskng.com",
-                "adeleke@cloudintegratedinc.com",
+                "olusoji200@gmail.com",
+                "support@avanzar.com.ng",
                 ###
             ],
             subject=EMAIL_SUBJECT,
