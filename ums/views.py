@@ -36,7 +36,7 @@ def subscribe(request):
     try:
         res = get_random_string(length=48)
         traffic_source = "Organic Search"
-        redirect_url = f"http://mtn-nigeria-prod.mfilterit.org/sid/234102200008007?origin_banner=1&trxId={res}&trfsrc={traffic_source}"
+        redirect_url = f"http://mtn-nigeria-prod.mfilterit.org/sid/234102200008007?trxId={res}&trfsrc={traffic_source}"
         return redirect(redirect_url)
     except Exception as ex:
         print(ex)
