@@ -77,6 +77,7 @@ def fetch_report():
         curr_path = os.path.dirname(os.path.realpath(__file__))
 
         report_path = os.path.join(curr_path, "reports/")
+        os.makedirs(report_path, exist_ok=True)
 
         filename = f'{report_path}Daily_Report_{yesterday.strftime("%d/%m/%Y").replace("/", "")}.xlsx'
 
@@ -734,6 +735,7 @@ def campaign_behaviour(start_date, end_date):
 
     curr_path = os.path.dirname(os.path.realpath(__file__))
     report_path = os.path.join(curr_path, "reports/")
+    os.makedirs(report_path, exist_ok=True)
 
     filename = f'{report_path}campaign_behaviour{end_date.strftime("%Y-%m-%d").replace("-", "")}.pdf'
 
@@ -801,6 +803,7 @@ def campaign_behaviour_daily_report(start_date, end_date):
     curr_path = os.path.dirname(os.path.realpath(__file__))
 
     report_path = os.path.join(curr_path, "reports/")
+    os.makedirs(report_path, exist_ok=True)
 
     filename = f'{report_path}campaign_behaviour_daily{start_date.strftime("%d/%m/%Y").replace("/", "")}.xlsx'
 
@@ -935,6 +938,7 @@ def subscribtion_source_report():
         curr_path = os.path.dirname(os.path.realpath(__file__))
 
         report_path = os.path.join(curr_path, "reports/")
+        os.makedirs(report_path, exist_ok=True)
 
         filename = f'{report_path}Subscription_Source_Report_{yesterday.strftime("%d/%m/%Y").replace("/", "")}.xlsx'
 
@@ -1066,6 +1070,7 @@ def pull_3rd_party_acquisition():
     curr_path = os.path.dirname(os.path.realpath(__file__))
 
     report_path = os.path.join(curr_path, "reports/")
+    os.makedirs(report_path, exist_ok=True)
 
     filename = f'{report_path}3rd_party_acquisition{today.strftime("%d/%m/%Y").replace("/", "")}.xlsx'
 
@@ -1141,6 +1146,7 @@ def pull_3rd_party_acquisition_count():
     curr_path = os.path.dirname(os.path.realpath(__file__))
 
     report_path = os.path.join(curr_path, "reports/")
+    os.makedirs(report_path, exist_ok=True)
 
     filename = f'{report_path}3rd_party_acquisition_count{today.strftime("%d/%m/%Y").replace("/", "")}.xlsx'
 
@@ -1267,6 +1273,7 @@ def export_user_msisdn(month_num):
         curr_path = os.path.dirname(os.path.realpath(__file__))
 
         report_path = os.path.join(curr_path, "reports/")
+        os.makedirs(report_path, exist_ok=True)
 
         filename = f"{report_path}MSISDN_Exports_{today.strftime('%d/%m/%Y').replace('/', '')}.xlsx"
 
@@ -1325,6 +1332,7 @@ def export_all_msisdns():
         curr_path = os.path.dirname(os.path.realpath(__file__))
 
         report_path = os.path.join(curr_path, "reports/")
+        os.makedirs(report_path, exist_ok=True)
 
         filename = f"{report_path}msisdn_export.txt"
 
