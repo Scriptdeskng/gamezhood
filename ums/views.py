@@ -517,6 +517,17 @@ def export_all_msisdn_query(request):
     return JsonResponse({"status": 200, "message": "Processing report!"})
 
 
+def export_user_msisdn_query(request):
+    month_num = request.GET.get("month")
+
+    tasks.export_user_msisdn.delay(month_num)
+
+    if not month_num:
+        return JsonResponse({"status": 400, "message": "Month required"})
+
+    return JsonResponse({"status": 200, "message": "Processing report!"})
+
+
 def mobplus_campaign_url(request):
     try:
         partner = request.GET.get("partner", None)

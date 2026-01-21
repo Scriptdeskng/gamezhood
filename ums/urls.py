@@ -34,23 +34,31 @@ urlpatterns = [
         name="cleanup_campaign_tracker",
     ),
     path("cleanup_data_sync/", cleanup_data_sync, name="cleanup_data_sync"),
-    path("export_all_msisdn_query/", export_all_msisdn_query, name="export_all_msisdn_query"),
-
-    #web promos 
+    path(
+        "export_all_msisdn_query/",
+        export_all_msisdn_query,
+        name="export_all_msisdn_query",
+    ),
+    path(
+        "export_user_msisdn_query/",
+        export_user_msisdn_query,
+        name="export_user_msisdn_query",
+    ),
+    # web promos
     path("campaign/mobplus/", mobplus_campaign_url, name="campaign-mobplus"),
     path("campaign/kmmobi/", kmmobi_campaign_url, name="campaign-kmmobi"),
     path("campaign/mobikok/", mobikok_campaign_url, name="campaign-mobikok"),
-    path("campaign/angel-media/", angel_media_campaign_url, name="campaign-angel-media"),
+    path(
+        "campaign/angel-media/", angel_media_campaign_url, name="campaign-angel-media"
+    ),
     path("campaign/tc/", neth_campaign_url, name="campaign-neth"),
     path("campaign/shine/", shine_campaign_url, name="campaign-shine"),
     path("campaign/mobipium/", mobipium_campaign_url, name="campaign-mobipium"),
-
     path(
         "get_cr_data/",
         get_cr_data,
         name="get_cr_data",
     ),
-
     path("check_sub_status/", check_sub_status, name="check_sub_status"),
     path("check_task_result/", check_task_result, name="check_task_result"),
 ]
