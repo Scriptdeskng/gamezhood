@@ -16,11 +16,6 @@ urlpatterns = [
     path("pullData/", pullData, name="pullData"),
     path("generate_report/", generate_report, name="generate-report"),
     path("fetch_stats/", fetch_stats, name="fetch_stats"),
-    path(
-        "campaign_partner_user_behaviour_query/",
-        campaign_partner_user_behaviour_query,
-        name="campaign_partner_user_behaviour_query",
-    ),
     ##
     path("campaign-stats/", fetch_campaign_behaviour, name="fetch_campaign_behaviour"),
     path(
