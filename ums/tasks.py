@@ -1370,3 +1370,67 @@ def export_all_msisdns():
     except Exception as e:
         logger.error(traceback.format_exc())
         logger.error(e)
+
+
+@shared_task
+def export_provider_conversion(provider: str, month: int):
+    try:
+        today = date.today().replace(month=int(month))
+
+        curr_path = os.path.dirname(os.path.realpath(__file__))
+
+        report_path = os.path.join(curr_path, "reports/")
+
+        filename = f"{report_path}_{provider.lower()}_conversions_{today.strftime('%d/%m/%Y').replace('/', '')}.xlsx"
+
+        data_cols = ["ClickID", "Msisdn", "PubID", "DateTime"]
+
+        data = {}
+
+        for dt in data_cols:
+            data[dt] = []
+
+        campaign_trackers = (
+            CampaignTracker.objects.filter(
+                converted_at__month=today.month,
+                provider=provider,
+                converted=True,
+            )
+            .all()
+            .order_by("created_at")
+        )
+        for val in campaign_trackers:
+            data["Msisdn"].append(val.msisdn)
+            data["ClickID"].append(val.click_id)
+            data["PubID"].append(val.pubid)
+            data["DateTime"].append(val.converted_at.strftime("%d/%m/%Y"))
+
+        new_df = pd.DataFrame(
+            {key: pd.Series(value, dtype=object) for key, value in data.items()},
+            columns=data_cols,
+        )
+        new_df.to_excel(filename, index=False, header=True)
+
+        logger.info(report_path, os.path.exists(report_path), filename)
+
+        EMAIL_SUBJECT = f"{provider} conversion report"
+        REPORTING_MSG = """
+            Hello Admin,
+            Please find the attached conversion report.
+            Regards.
+            """
+        send_email(
+            recipients=[
+                "olushola@scriptdeskng.com",
+                "olusoji200@gmail.com",
+                "support@avanzar.com.ng",
+            ],
+            subject=EMAIL_SUBJECT,
+            body_text=REPORTING_MSG,
+            attachment=filename,
+            attachment_mime_type="text/csv",
+            quiet=False,
+        )
+    except Exception as e:
+        logger.error(traceback.format_exc())
+        logger.error(e)

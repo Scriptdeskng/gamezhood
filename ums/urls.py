@@ -44,6 +44,11 @@ urlpatterns = [
         export_user_msisdn_query,
         name="export_user_msisdn_query",
     ),
+    path(
+        "export_provider_conversion_query/",
+        export_provider_conversion_query,
+        name="export_provider_conversion_query",
+    ),
     # web promos
     path("campaign/mobplus/", mobplus_campaign_url, name="campaign-mobplus"),
     path("campaign/kmmobi/", kmmobi_campaign_url, name="campaign-kmmobi"),
