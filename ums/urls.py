@@ -16,6 +16,11 @@ urlpatterns = [
     path("pullData/", pullData, name="pullData"),
     path("generate_report/", generate_report, name="generate-report"),
     path("fetch_stats/", fetch_stats, name="fetch_stats"),
+    path(
+        "campaign_partner_user_behaviour_query/",
+        campaign_partner_user_behaviour_query,
+        name="campaign_partner_user_behaviour_query",
+    ),
     ##
     path("campaign-stats/", fetch_campaign_behaviour, name="fetch_campaign_behaviour"),
     path(
@@ -43,6 +48,11 @@ urlpatterns = [
         "export_user_msisdn_query/",
         export_user_msisdn_query,
         name="export_user_msisdn_query",
+    ),
+    path(
+        "export_provider_conversion_query/",
+        export_provider_conversion_query,
+        name="export_provider_conversion_query",
     ),
     # web promos
     path("campaign/mobplus/", mobplus_campaign_url, name="campaign-mobplus"),

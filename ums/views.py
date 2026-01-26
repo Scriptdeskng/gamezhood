@@ -863,3 +863,41 @@ def mobipium_campaign_url(request):
     except Exception:
         logger.error("exception occurred", exc_info=True)
         return redirect("content:home")
+
+
+def campaign_partner_user_behaviour_query(request):
+
+    month_num = request.GET.get("month_num")
+    partner = request.GET.get("partner")
+    if not month_num:
+        return JsonResponse({"status": 400, "message": "Month required"})
+    if not partner:
+        return JsonResponse({"status": 400, "message": "Partner required"})
+
+    tasks.campaign_partner_user_behaviour.delay(month_num, partner)
+
+    return JsonResponse({"status": 200, "message": "Processing report!"})
+
+
+def campaign_partner_user_behaviour_compiled_query(request):
+
+    month_num = request.GET.get("month_num", None)
+
+    tasks.campaign_partner_user_behaviour_compilation.delay(month_num)
+
+    return JsonResponse({"status": 200, "message": "Processing report!"})
+
+
+def export_provider_conversion_query(request):
+    provider = request.GET.get("provider")
+
+    month_num = request.GET.get("month_num")
+    if not month_num:
+        return JsonResponse({"status": 400, "message": "Month required"})
+
+    if not provider:
+        return JsonResponse({"status": 400, "message": "Provider required"})
+
+    tasks.export_provider_conversion.delay(provider, month_num)
+
+    return JsonResponse({"status": 200, "message": "Processing report!"})
