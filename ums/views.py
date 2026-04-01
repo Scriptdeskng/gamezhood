@@ -889,6 +889,6 @@ def intelli_datasync(request):
 
     the_data = json.loads(request.body)
 
-    tasks.process_datasync.delay(the_data)
+    tasks.process_datasync(the_data)
 
     return JsonResponse({"status": 200, "message": "ok"})
