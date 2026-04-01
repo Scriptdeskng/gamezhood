@@ -293,20 +293,20 @@ def process_datasync(payload):
             # theUser.save()
 
             # find campaign tracker
-            tracker_qs = CampaignTracker.objects.filter(msisdn=msisdn)
+            # tracker_qs = CampaignTracker.objects.filter(msisdn=msisdn)
 
-            if tracker_qs.exists():
-                tracker = tracker_qs.last()
-                try:
-                    handle_postback_delay(
-                        tracker.provider,
-                        tracker.id,
-                        new_sync_data.id,
-                        userSub.id,
-                    )
-                except Exception as ex:
-                    logger.error(ex)
-                    print("error handling postback delays")
+            # if tracker_qs.exists():
+            #     tracker = tracker_qs.last()
+            #     try:
+            #         handle_postback_delay(
+            #             tracker.provider,
+            #             tracker.id,
+            #             new_sync_data.id,
+            #             userSub.id,
+            #         )
+            #     except Exception as ex:
+            #         logger.error(ex)
+            #         print("error handling postback delays")
         elif not_type == "UNSUBSCRIPTION_NOTIFICATION":
             userSub.sub_active = False
             # userSub.save()
