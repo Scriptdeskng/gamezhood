@@ -878,3 +878,17 @@ def export_provider_conversion_query(request):
     tasks.export_provider_conversion.delay(provider, month_num)
 
     return JsonResponse({"status": 200, "message": "Processing report!"})
+
+
+@require_POST
+@csrf_exempt
+def intelli_datasync(request):
+    """
+    Receive subscription sync notifications directly from Intelli.
+    """
+
+    the_data = json.loads(request.body)
+
+    tasks.process_datasync.delay(the_data)
+
+    return JsonResponse({"status": 200, "message": "ok"})
