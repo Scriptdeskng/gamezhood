@@ -6,13 +6,11 @@ from ums.models import (
     UserProfile,
 )
 import json
-from django.http import  JsonResponse
+from django.http import JsonResponse
 from ums.decorators import allowed_users
 from .context_processor import fetch_msisdn
 
-from datetime import datetime, date
-
-
+from datetime import datetime
 
 
 from django.db.models import Q
@@ -44,7 +42,7 @@ def homepage(request):
     template = "content/index.html"
 
     featuredGames = Game.objects.filter(featured=True, verified=True)[:7]
-    allGames = Game.objects.filter(verified=True)
+    allGames = Game.objects.filter(verified=True).order_by("-created_at")[:15]
 
     context = {"featuredGames": featuredGames, "allGames": allGames}
 
@@ -55,7 +53,9 @@ def game_category(request, slug):
     template = "content/category.html"
 
     category = get_object_or_404(GameCategory, slug=slug)
-    allGames = Game.objects.filter(category=category, verified=True)
+    allGames = Game.objects.filter(category=category, verified=True).order_by(
+        "-created_at"
+    )
 
     context = {"category": category, "allGames": allGames}
 
@@ -112,7 +112,6 @@ def echoView(request):
 def game_play(request, slug=None):
     the_game = get_object_or_404(Game, slug=slug)
 
-
     try:
         today = datetime.now()
         the_game.play_times += 1
@@ -148,13 +147,11 @@ def game_play(request, slug=None):
     return render(request, template, context)
 
 
-
-
 def all_games(request):
     template = "content/all_games.html"
 
     # Get all games query
-    games = Game.objects.filter(verified=True)
+    games = Game.objects.filter(verified=True).order_by("-created_at")
 
     # Get all genres and categories for filters
     genres = GameGenre.objects.all()
