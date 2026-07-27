@@ -1,0 +1,61 @@
+{% extends 'content/base.html' %}
+{% load static %}
+
+{% block head_title %}
+    {% if no_subscription %}No Active Subscription{% else %}Check Subscription{% endif %}
+{% endblock head_title %}
+
+{% block content %}
+    <div class="sign section--full-bg" data-bg="{% static 'img/bg2.jpg' %}">
+        <div class="container">
+            <div class="row">
+                <div class="col-12">
+                    <div class="sign__content">
+                        {% if no_subscription %}
+                            <div class="sign__form">
+                                <a href="{% url 'content:home' %}" class="sign__logo">
+                                    <img src="{% static 'img/logo.png' %}" alt="">
+                                </a>
+
+                                <p class="sign__text">
+                                    <strong>{{ msisdn }}</strong> does not have an active subscription.
+                                </p>
+
+                                {% if redirect_url %}
+                                    <a href="{{ redirect_url }}" class="sign__btn">Subscribe Now</a>
+                                {% endif %}
+
+                                <span class="sign__text">
+                                    <a href="{% url 'users:phone_login' %}?reset=1{% if next %}&next={{ next|urlencode }}{% endif %}">Try a different number</a>
+                                </span>
+                            </div>
+                        {% else %}
+                            <form method="post" action="{% url 'users:phone_login' %}" class="sign__form">
+                                <a href="{% url 'content:home' %}" class="sign__logo">
+                                    <img src="{% static 'img/logo.png' %}" alt="">
+                                </a>
+
+                                {% csrf_token %}
+                                {% if next %}
+                                    <input type="hidden" name="next" value="{{ next }}">
+                                {% endif %}
+
+                                {% if error %}
+                                    <span class="sign__text sign__text--error">{{ error }}</span>
+                                {% endif %}
+
+                                <div class="sign__group">
+                                    <input type="tel" name="phone" class="sign__input" required
+                                           value="{{ saved_phone|default:'' }}"
+                                           placeholder="e.g. 08031234567">
+                                </div>
+
+                                <button type="submit" class="sign__btn">Check Subscription</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}

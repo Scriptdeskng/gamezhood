@@ -4812,6 +4812,9 @@ html:not([dir="rtl"]) .noUi-horizontal .noUi-handle {
   color: #a782e9;
   text-decoration: underline;
 }
+.sign__text--error {
+  color: #e35d5d;
+}
 .sign__delimiter {
   font-size: 13px;
   color: #dbdada;
