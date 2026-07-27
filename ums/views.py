@@ -1,3 +1,5 @@
+from urllib.parse import urlsplit, urlunsplit
+
 from django.shortcuts import render
 from django.views.decorators.cache import never_cache
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -904,22 +906,33 @@ def intelli_datasync(request):
     return JsonResponse({"status": 200, "message": "ok"})
 
 
+def _with_traffic_source(url, source="organic"):
+    parts = urlsplit(url)
+    path = parts.path if parts.path.endswith("/") else parts.path + "/"
+    query = f"{parts.query}&trfsrc={source}" if parts.query else f"trfsrc={source}"
+    return urlunsplit((parts.scheme, parts.netloc, path, query, parts.fragment))
+
+
 def _pick_redirect_url(action):
     """Prefer the 'envina' antifraud campaign URL, falling back to the
     action's top-level redirection_url, then any other campaign_urls entry."""
     campaign_urls = action.get("campaign_urls") or []
+    url = ""
     for entry in campaign_urls:
         if isinstance(entry, dict) and entry.get("antifraud") == "envina" and entry.get("url"):
-            return entry["url"]
+            url = entry["url"]
+            break
 
-    if action.get("redirection_url"):
-        return action["redirection_url"]
+    if not url and action.get("redirection_url"):
+        url = action["redirection_url"]
 
-    for entry in campaign_urls:
-        if isinstance(entry, dict) and entry.get("url"):
-            return entry["url"]
+    if not url:
+        for entry in campaign_urls:
+            if isinstance(entry, dict) and entry.get("url"):
+                url = entry["url"]
+                break
 
-    return ""
+    return _with_traffic_source(url) if url else ""
 
 
 def _safe_redirect_target(request, next_url, fallback="content:home"):
