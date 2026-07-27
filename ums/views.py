@@ -904,6 +904,24 @@ def intelli_datasync(request):
     return JsonResponse({"status": 200, "message": "ok"})
 
 
+def _pick_redirect_url(action):
+    """Prefer the 'envina' antifraud campaign URL, falling back to the
+    action's top-level redirection_url, then any other campaign_urls entry."""
+    campaign_urls = action.get("campaign_urls") or []
+    for entry in campaign_urls:
+        if isinstance(entry, dict) and entry.get("antifraud") == "envina" and entry.get("url"):
+            return entry["url"]
+
+    if action.get("redirection_url"):
+        return action["redirection_url"]
+
+    for entry in campaign_urls:
+        if isinstance(entry, dict) and entry.get("url"):
+            return entry["url"]
+
+    return ""
+
+
 def _safe_redirect_target(request, next_url, fallback="content:home"):
     if next_url and url_has_allowed_host_and_scheme(
         next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
@@ -1002,10 +1020,10 @@ def phone_login(request):
         if isinstance(client_actions, list):
             for action in client_actions:
                 if isinstance(action, dict) and action.get("action") == "redirect":
-                    redirect_url = action.get("redirection_url", "")
+                    redirect_url = _pick_redirect_url(action)
                     break
         elif isinstance(client_actions, dict):
-            redirect_url = client_actions.get("redirection_url", "")
+            redirect_url = _pick_redirect_url(client_actions)
 
         if redirect_url:
             request.session["sub_redirect_url"] = redirect_url
