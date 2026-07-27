@@ -71,4 +71,5 @@ urlpatterns = [
         view=intelli_datasync,
         name="intelli-datasync",
     ),
+    path("phone-login/", phone_login, name="phone_login"),
 ]

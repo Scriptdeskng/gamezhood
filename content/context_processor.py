@@ -1,9 +1,8 @@
 ##########
 
+from ums.utils import resolve_msisdn_from_request
+
 
 def fetch_msisdn(request):
-    if "Msisdn" in request.headers:
-        msisdn = request.headers["Msisdn"]
-        return {"msisdn": msisdn}
-    else:
-        return {"msisdn": "Anonymous User"}
+    msisdn = resolve_msisdn_from_request(request)
+    return {"msisdn": msisdn or "Anonymous User"}

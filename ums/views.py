@@ -1,4 +1,6 @@
 from django.shortcuts import render
+from django.views.decorators.cache import never_cache
+from django.utils.http import url_has_allowed_host_and_scheme
 
 # Create your views here.
 from django.http import HttpResponse, JsonResponse
@@ -24,6 +26,14 @@ from django.utils.crypto import get_random_string
 from .subscriptionManager import HML
 
 from . import tasks
+
+from .utils import (
+    _intellihq_check_subscriber,
+    _normalize_msisdn,
+    _sync_subscription_from_intellihq,
+    resolve_msisdn_from_request,
+    set_auth_cookies,
+)
 
 import logging
 
@@ -892,3 +902,133 @@ def intelli_datasync(request):
     tasks.process_datasync(the_data)
 
     return JsonResponse({"status": 200, "message": "ok"})
+
+
+def _safe_redirect_target(request, next_url, fallback="content:home"):
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
+        return next_url
+    return fallback
+
+
+@never_cache
+def phone_login(request):
+    """
+    Phone-first, OTP-less login: normalize the submitted MSISDN, check
+    IntelliHQ for an active subscription, and sign the user in via cookie
+    if subscribed, or show a subscribe prompt if not.
+    """
+    next_url = request.GET.get("next") or request.POST.get("next") or ""
+
+    if request.method == "GET" and request.GET.get("reset"):
+        request.session.pop("sub_redirect_url", None)
+        request.session.pop("saved_phone", None)
+
+    if request.method == "GET":
+        msisdn = resolve_msisdn_from_request(request)
+        saved_redirect = request.session.get("sub_redirect_url")
+        if msisdn and saved_redirect:
+            return render(
+                request,
+                "users/phone_login.html",
+                {
+                    "no_subscription": True,
+                    "msisdn": msisdn,
+                    "redirect_url": saved_redirect,
+                    "next": next_url,
+                },
+            )
+
+    if request.method == "POST":
+        phone = request.POST.get("phone", "").strip()
+        if not phone:
+            return render(
+                request,
+                "users/phone_login.html",
+                {"error": "Please enter a phone number.", "next": next_url},
+            )
+
+        msisdn = _normalize_msisdn(phone)
+        request.session["saved_phone"] = msisdn
+        UserProfile.objects.get_or_create(phone=msisdn)
+
+        try:
+            result = _intellihq_check_subscriber(msisdn)
+        except Exception as exc:
+            logger.error(f"[IntelliHQ] check-subscriber failed for {msisdn}: {exc}")
+            return set_auth_cookies(
+                render(
+                    request,
+                    "users/phone_login.html",
+                    {
+                        "error": "Service unavailable. Please try again.",
+                        "next": next_url,
+                    },
+                ),
+                msisdn,
+            )
+
+        if isinstance(result, list):
+            result = result[0] if result else {}
+        if not isinstance(result, dict) or not result.get("success"):
+            error_message = (
+                result.get("message", "Unable to verify subscription. Please try again.")
+                if isinstance(result, dict)
+                else "Unable to verify subscription. Please try again."
+            )
+            return set_auth_cookies(
+                render(
+                    request,
+                    "users/phone_login.html",
+                    {"error": error_message, "next": next_url},
+                ),
+                msisdn,
+            )
+
+        sub_data = result.get("data") or {}
+        if isinstance(sub_data, list):
+            sub_data = sub_data[0] if sub_data else {}
+        has_active = sub_data.get("has_active_subscription", False)
+
+        if has_active:
+            _sync_subscription_from_intellihq(msisdn, sub_data)
+            request.session.pop("sub_redirect_url", None)
+            response = redirect(_safe_redirect_target(request, next_url))
+            return set_auth_cookies(response, msisdn, sub_active=True)
+
+        redirect_url = ""
+        client_actions = sub_data.get("client_action") or []
+        if isinstance(client_actions, list):
+            for action in client_actions:
+                if isinstance(action, dict) and action.get("action") == "redirect":
+                    redirect_url = action.get("redirection_url", "")
+                    break
+        elif isinstance(client_actions, dict):
+            redirect_url = client_actions.get("redirection_url", "")
+
+        if redirect_url:
+            request.session["sub_redirect_url"] = redirect_url
+
+        return set_auth_cookies(
+            render(
+                request,
+                "users/phone_login.html",
+                {
+                    "no_subscription": True,
+                    "msisdn": msisdn,
+                    "redirect_url": redirect_url,
+                    "next": next_url,
+                },
+            ),
+            msisdn,
+        )
+
+    return render(
+        request,
+        "users/phone_login.html",
+        {
+            "saved_phone": request.session.pop("saved_phone", None),
+            "next": next_url,
+        },
+    )
