@@ -20,7 +20,7 @@ def unique_slug(instance, source, *, queryset=None):
 
 
 class GameCategory(models.Model):
-    slug = models.SlugField(unique=True, blank=True)
+    slug = models.SlugField(blank=True)
     name = models.CharField(max_length=120)
 
     def save(self, *args, **kwargs):
@@ -32,7 +32,7 @@ class GameCategory(models.Model):
 
 
 class GameGenre(models.Model):
-    slug = models.SlugField(unique=True, blank=True)
+    slug = models.SlugField(blank=True)
     name = models.CharField(max_length=120)
 
     def save(self, *args, **kwargs):
@@ -44,7 +44,7 @@ class GameGenre(models.Model):
 
 
 class Game(models.Model):
-    slug = models.SlugField(unique=True, blank=True)
+    slug = models.SlugField(blank=True)
     title = models.CharField(max_length=120)
     category = models.ForeignKey(
         GameCategory, blank=True, null=True, on_delete=models.CASCADE

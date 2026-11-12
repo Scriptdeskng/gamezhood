@@ -13,16 +13,16 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='game',
             name='slug',
-            field=models.SlugField(blank=True, unique=True),
+            field=models.SlugField(blank=True),
         ),
         migrations.AlterField(
             model_name='gamecategory',
             name='slug',
-            field=models.SlugField(blank=True, unique=True),
+            field=models.SlugField(blank=True),
         ),
         migrations.AlterField(
             model_name='gamegenre',
             name='slug',
-            field=models.SlugField(blank=True, unique=True),
+            field=models.SlugField(blank=True),
         ),
     ]
