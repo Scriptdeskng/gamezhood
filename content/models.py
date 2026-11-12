@@ -1,27 +1,50 @@
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.text import slugify
 from ums.models import UserProfile
 
 
+def unique_slug(instance, source, *, queryset=None):
+    """Build an available slug from a model's name or title."""
+    base_slug = slugify(source) or instance._meta.model_name
+    slug = base_slug
+    suffix = 2
+    existing = queryset if queryset is not None else instance.__class__.objects.all()
+
+    while existing.filter(slug=slug).exclude(pk=instance.pk).exists():
+        slug = f"{base_slug}-{suffix}"
+        suffix += 1
+
+    return slug
+
+
 class GameCategory(models.Model):
-    slug = models.SlugField()
+    slug = models.SlugField(unique=True, blank=True)
     name = models.CharField(max_length=120)
+
+    def save(self, *args, **kwargs):
+        self.slug = unique_slug(self, self.name)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
 
 
 class GameGenre(models.Model):
-    slug = models.SlugField()
+    slug = models.SlugField(unique=True, blank=True)
     name = models.CharField(max_length=120)
+
+    def save(self, *args, **kwargs):
+        self.slug = unique_slug(self, self.name)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
 
 
 class Game(models.Model):
-    slug = models.SlugField()
+    slug = models.SlugField(unique=True, blank=True)
     title = models.CharField(max_length=120)
     category = models.ForeignKey(
         GameCategory, blank=True, null=True, on_delete=models.CASCADE
@@ -62,6 +85,10 @@ class Game(models.Model):
     vendor = models.ForeignKey(
         "ums.VendorProfile", blank=True, null=True, on_delete=models.SET_NULL
     )
+
+    def save(self, *args, **kwargs):
+        self.slug = unique_slug(self, self.title)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.title
